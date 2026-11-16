@@ -1,0 +1,1804 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Eseményhorizont</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one deliberate dark world – full-bleed canvas, HUD in the corners, direction stick bottom-left, throttle slider bottom-right */
+:root{
+  --void:#04050a;
+  --ink:#e9edf6;
+  --dim:#8790a6;
+  --line:rgba(233,237,246,.16);
+  --plasma:#ffb04a;
+  --blue:#82c8ff;
+  --violet:#b48cff;
+  --danger:#ff5a52;
+  --panel:rgba(8,10,18,.72);
+  --display:"Oxanium",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--void);color:var(--ink);font-family:var(--mono);-webkit-user-select:none;user-select:none}
+body{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#sa{position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+
+.hud{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:max(14px,env(safe-area-inset-left,0px));
+  display:grid;grid-template-columns:auto auto;gap:2px 12px;font-size:12px;line-height:1.45;
+  background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;
+  font-variant-numeric:tabular-nums;min-width:0;max-width:calc(100vw - 170px);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.hud:not(.full){font-size:11px;padding:7px 10px;gap:0 10px;max-width:min(200px, calc(100vw - 170px))}
+.hud:not(.full) .big{font-size:17px}
+.hud:not(.full) .x, .hud:not(.full) #hU, .hud:not(.full) #hCV, .hud:not(.full) #hR, .hud:not(.full) #hD,
+.hud:not(.full) #kDist, .hud:not(.full) #hDist, .hud:not(.full) #hTh, .hud:not(.full) #hPl, .hud:not(.full) #hE{display:none}
+.hud.inside:not(.full) #kDist, .hud.inside:not(.full) #hDist{display:block}
+.hud .more{grid-column:1/-1;font-size:9.5px;color:var(--dim);letter-spacing:.08em;text-align:center;margin-top:3px}
+.hud:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.hud.inside{border-color:rgba(180,140,255,.45)}
+.hud .k{color:var(--dim);letter-spacing:.06em;text-transform:uppercase;font-size:10.5px;align-self:center}
+.hud .v{text-align:right;white-space:nowrap}
+.hud .big{font-family:var(--display);font-weight:700;font-size:20px;line-height:1.1}
+.hud .sep{grid-column:1/-1;height:1px;background:var(--line);margin:4px 0}
+.bar{grid-column:1/-1;height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--blue),#d9f0ff);transform-origin:left}
+.warn{color:var(--danger)}
+.vio{color:var(--violet)}
+
+.sci{z-index:5}
+.disc{z-index:6}
+.toast{z-index:7}
+#mapC{width:100%;max-width:340px;aspect-ratio:1;justify-self:center;touch-action:manipulation;cursor:pointer}
+#apGo:disabled{opacity:.4;cursor:default}
+.radarCap{position:fixed;top:calc(env(safe-area-inset-top,0px) + 140px);right:max(14px,env(safe-area-inset-right,0px));width:124px;text-align:center;font-size:9.5px;color:var(--dim);letter-spacing:.06em;pointer-events:none}
+#radar{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);right:max(14px,env(safe-area-inset-right,0px));
+  width:124px;height:124px;border-radius:50%;background:var(--panel);border:1px solid var(--line);cursor:pointer}
+
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 168px);transform:translateX(-50%);
+  font-family:var(--display);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:14px;
+  color:var(--ink);text-shadow:0 0 12px rgba(130,200,255,.7);pointer-events:none;text-align:center;
+  transition:opacity .4s;opacity:0;width:min(90vw,520px)}
+.toast.on{opacity:1}
+.toast.danger{color:var(--danger);text-shadow:0 0 14px rgba(255,90,82,.8)}
+.toast.vio{color:#e4d6ff;text-shadow:0 0 14px rgba(180,140,255,.9)}
+
+.pad{position:fixed;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 196px);
+  display:flex;gap:12px;align-items:flex-end}
+.btn{font-family:var(--display);font-weight:700;letter-spacing:.1em;color:var(--ink);background:var(--panel);
+  border:1px solid var(--line);border-radius:50%;touch-action:none;cursor:pointer;display:grid;place-items:center;
+  -webkit-tap-highlight-color:transparent}
+.btn:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+#bWarp{width:92px;height:92px;font-size:15px;border-color:rgba(130,200,255,.55);box-shadow:inset 0 0 22px rgba(130,200,255,.18)}
+#bWarp.on{background:rgba(130,200,255,.28);box-shadow:0 0 28px rgba(130,200,255,.6),inset 0 0 22px rgba(130,200,255,.4)}
+#bBrake{width:66px;height:66px;font-size:12px}
+.mid{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 22px);display:flex;flex-direction:column;gap:8px;width:118px}
+.pill{font-family:var(--display);font-weight:700;font-size:11px;letter-spacing:.12em;color:var(--ink);background:var(--panel);border:1px solid var(--line);
+  border-radius:999px;padding:9px 0;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.pill:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+#bFire{border-color:rgba(255,240,200,.5);color:#fff3d6}
+.sci{position:fixed;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));top:calc(env(safe-area-inset-top,0px) + 150px);
+  margin-inline:auto;max-width:460px;max-height:min(52vh,520px);overflow:auto;background:rgba(8,10,18,.92);border:1px solid var(--line);border-radius:8px;
+  padding:12px 14px;display:grid;gap:10px;font-size:12px}
+.sciHead{display:flex;justify-content:space-between;align-items:center;font-family:var(--display);font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-size:12px}
+.x{background:none;border:0;color:var(--dim);font-size:16px;cursor:pointer;padding:2px 6px}
+.mass{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.mb{text-align:left;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:6px;color:var(--ink);padding:7px 8px;cursor:pointer;display:grid;gap:2px;min-width:0}
+.mb b{font-family:var(--display);font-size:13px}
+.mb span{font-size:9.5px;color:var(--dim);line-height:1.3}
+.mb.on{border-color:var(--plasma);background:rgba(255,176,74,.12)}
+.rows{display:grid;grid-template-columns:1fr auto;gap:3px 12px;font-variant-numeric:tabular-nums}
+.rows .k{color:var(--dim)} .rows .v{text-align:right;white-space:nowrap}
+.rows .blue{color:var(--blue)}
+.note{margin:0;color:var(--dim);font-size:10.5px;line-height:1.55}
+.disc{position:fixed;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));top:calc(env(safe-area-inset-top,0px) + 150px);
+  margin-inline:auto;max-width:440px;background:rgba(14,9,26,.94);border:1px solid rgba(180,140,255,.55);border-radius:8px;padding:12px 14px;display:grid;gap:6px;cursor:pointer;
+  box-shadow:0 0 30px rgba(180,140,255,.25)}
+.disc .tag{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--violet)}
+.disc h2{margin:0;font-family:var(--display);font-weight:700;font-size:18px;text-wrap:balance}
+.disc p{margin:0;font-size:12px;line-height:1.55;color:#d3d0e4}
+.disc .tap{font-size:10px;color:var(--dim)}
+.snd{justify-self:start;background:none;border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:5px 12px;font-family:var(--mono);font-size:11px;cursor:pointer}
+#bBrake.on{background:rgba(255,176,74,.25);border-color:var(--plasma)}
+.pad:not(.inside) #bBrake{display:none}
+#bAlc{width:58px;height:58px;font-size:10px;letter-spacing:.06em;border-color:rgba(200,150,255,.6);box-shadow:inset 0 0 18px rgba(200,150,255,.2)}
+.pad.inside #bAlc{display:none}
+.alcBox .tgt{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:6px;color:var(--ink);padding:8px 10px;font-family:var(--mono);font-size:11.5px;cursor:pointer}
+.alcBox .tgt span:last-child{color:var(--dim);white-space:nowrap;font-variant-numeric:tabular-nums}
+.alcBox .tgt:hover,.alcBox .tgt:focus-visible{border-color:var(--violet);outline:none}
+.alcBox .list{display:grid;gap:6px}
+.alcBox .mass{grid-template-columns:repeat(4,minmax(0,1fr))}
+#bWarp{width:80px;height:80px}
+.pad.inside #bWarp,.pad.inside #bBrake{border-color:rgba(180,140,255,.6);box-shadow:inset 0 0 22px rgba(180,140,255,.22)}
+.pad.inside .btn.on{background:rgba(180,140,255,.3)}
+
+.hint{position:fixed;left:calc(max(14px,env(safe-area-inset-left,0px)) + 180px);bottom:calc(env(safe-area-inset-bottom,0px) + 22px);
+  font-size:11px;color:var(--dim);line-height:1.6;pointer-events:none;max-width:40vw}
+.hint b{color:var(--ink);font-weight:500}
+@media (pointer:coarse), (max-width:760px){ .hint{display:none} }
+
+.ov{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse at center,rgba(4,5,10,.35),rgba(4,5,10,.85));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px;overflow:auto}
+.card{max-width:440px;width:100%;display:grid;gap:14px}
+.card h1{font-family:var(--display);font-weight:800;font-size:clamp(30px,9vw,50px);line-height:.98;margin:0;letter-spacing:.02em;text-wrap:balance}
+.card h1 span{color:var(--plasma)}
+.card p{margin:0;color:#c3c9d8;font-size:13px;line-height:1.6;max-width:62ch}
+.card .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--blue)}
+.card ul{margin:0;padding-left:18px;font-size:12.5px;color:#c3c9d8;line-height:1.7}
+.stats{display:grid;grid-template-columns:1fr auto;gap:4px 16px;font-size:13px;font-variant-numeric:tabular-nums;
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding-block:10px}
+.stats span:nth-child(odd){color:var(--dim)}
+.go{justify-self:start;font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--void);background:var(--plasma);border:0;border-radius:4px;padding:12px 22px;cursor:pointer}
+.modes{display:flex;gap:10px;flex-wrap:wrap}
+.go.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.card .small{font-size:12px;color:var(--dim)}
+.go:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+</style>
+
+<div id="sa"></div>
+<canvas id="c" aria-label="Űrszimuláció: hajó, fekete lyuk, négydimenziós tér"></canvas>
+
+<div class="hud" id="hud" role="button" tabindex="0" aria-label="Műszerfal – koppints a részletekért">
+  <span class="k">v / c</span><span class="v big" id="hB">0,000</span>
+  <span class="k">γ</span><span class="v" id="hG">1,000</span>
+  <span class="k x">γ·v saját seb.</span><span class="v" id="hU">0,00 c</span>
+  <span class="k x">c − v</span><span class="v" id="hCV">–</span>
+  <span class="k x">Óraütem</span><span class="v" id="hR">1,00×</span>
+  <span class="sep"></span>
+  <span class="k">Föld</span><span class="v" id="hT">0,0 nap</span>
+  <span class="k">Hajó</span><span class="v" id="hTau">0,0 nap</span>
+  <span class="k x">Lemaradás</span><span class="v" id="hD">0,0 nap</span>
+  <span class="sep x"></span>
+  <span class="k" id="kDist">Távolság</span><span class="v" id="hDist">– rs</span>
+  <span class="k" id="kBeac">Jeladók</span><span class="v" id="hBeac">0 / 5</span>
+  <span class="k x">Elméletek</span><span class="v" id="hTh">0 / 6</span>
+  <span class="k x">Helyek</span><span class="v" id="hPl">0 / 7</span>
+  <span class="k x">Warp</span><span class="v" id="hE">100%</span>
+  <div class="bar"><i id="hBar"></i></div>
+  <span class="more" id="hMore">▾ részletek</span>
+</div>
+<canvas id="radar" width="248" height="248" aria-label="Radar – koppints a csillagtérképért"></canvas>
+<span class="radarCap">koppints: térkép</span>
+<div class="sci" id="map" hidden>
+  <div class="sciHead"><span>Csillagtérkép · logaritmikus</span><button class="x" id="mapX" type="button" aria-label="Bezárás">✕</button></div>
+  <canvas id="mapC" width="680" height="680"></canvas>
+  <div class="note" id="apInfo" style="color:#d3d0e4"></div>
+  <button class="go" id="apGo" type="button" disabled>Autopilóta indítása</button>
+  <p class="note">A középpont a hajó; minden kör tízszer messzebb van az előzőnél. Az autopilóta állandó saját gyorsulással megy (mint a warp), félúton megfordul, és ugyanúgy fékez. Így a hajón eltelt idő csak a távolság logaritmusával nő: τ = (2c/a)·arcosh(1 + a·d/2c²). A Földön közben sokkal több idő telik.</p>
+</div>
+<div class="toast" id="toast"></div>
+
+<div class="hint">
+  <b>← →</b> fordul · <b>↑</b> hajtómű · <b>↓</b> fék · <b>Space</b> warp · <b>V</b> nézet · <b>F</b> foton · <b>T</b> műszerek · egérrel a két vezérlő is húzható<br>
+  A 4D térben: <b>Space</b> / <b>↓</b> = mozgás a W-tengelyen
+</div>
+<div class="mid">
+  <button class="pill" id="bFire" type="button">FOTON</button>
+  <button class="pill" id="bSci" type="button">TUDOMÁNY</button>
+  <button class="pill" id="bView" type="button">NÉZET</button>
+</div>
+<div class="disc" id="disc" hidden><div class="tag" id="discTag"></div><h2 id="discT"></h2><p id="discP"></p><span class="tap">Koppints a bezáráshoz</span></div>
+<div class="sci" id="sci" hidden>
+  <div class="sciHead"><span>Műszerek</span><button class="x" id="sciX" type="button" aria-label="Bezárás">✕</button></div>
+  <div class="mass" id="massBtns"></div>
+  <div class="rows" id="sciRows"></div>
+  <button class="snd" id="bSnd" type="button">Pulzár-hang: be</button>
+  <p class="note">Az árapály, a lebegési gyorsulás, a Hawking- és Tolman-hőmérséklet és a párolgási idő valódi képletekből számolódik a választott tömegre. A párolgás ma valójában nem indul el: a 2,7 K-es kozmikus háttérsugárzás melegebb bármelyik ilyen lyuknál, ezért ezek nőnek. A foton pályáját a Schwarzschild-geodetikus egyenlet adja. A Hawking-párok a horizont mellett csak szemléltetés, ezerszeresen felnagyítva; a párkeltéses kép maga is egyszerűsítés. A 4D tér a horizont mögött játékelem: a valódi lyukban a sugárirány időszerűvé válik, így a szingularitás nem egy hely, hanem a jövőd egy pillanata, amit nem lehet kikerülni. A lyuk forgását (ergoszféra, téridő-vonszolás, Penrose-folyamat) szemléltetésként tettük rá a nem forgó pályákra; a Penrose-folyamat legfeljebb kb. 20,7%-os nyeresége valódi határ. A kettős lyuk csiripelése a valódi ω ∝ (t꜀ − t)^(−3/8) szabályt követi, de lelassítva, és a csillagok torzulása milliárdszorosan felnagyított – a valódi hullám a Földön 10⁻²¹ relatív nyúlást okoz. A játék órája a pilóta órája. Állandó saját gyorsulásnál a rapiditás a hajóidővel egyenletesen nő, a sebesség viszont csak egyre több kilencest kap: v/c = tanh(φ). Előre minden távolság γ-szorosára rövidül, ezért a hajóból nézve a világ γ·v ütemben rohan el – ez korlát nélkül nő, miközben kint egyre több idő telik minden hajó-másodperc alatt. Kb. γ ≈ 500 fölött a kozmikus háttérsugárzás előre látható izzássá kékülne. Lépték: 1 játékmásodperc = 1 nap, 1 fénynap = 900 egység, így a távoli helyek valódi, Földtől mért távolságban vannak; az irányuk kitalált, a csillagok mérete nagyítva. A γ·v érték földi vonalzóval és hajóórával mért sebesség: ezért lehet nagyobb c-nél, de a hajó saját rendszerében semmi nem halad el melletted c-nél gyorsabban – ott a távolságok rövidülnek meg. A jet erőssége a választott lyuktól függ: az M87*-nak óriási jete van, a Tejút központi lyukának alig.</p>
+</div>
+<div class="sci alcBox" id="alc" hidden>
+  <div class="sciHead"><span>Alcubierre-hajtómű</span><button class="x" id="alcX" type="button" aria-label="Bezárás">✕</button></div>
+  <p class="note" style="color:#d3d0e4">A hajó nem gyorsul: a téridő előtte összehúzódik, mögötte kitágul, és a buborék viszi. Bent nincs időtágulás és nincs gyorsulásérzet. Válassz sebességet és célt. Indulás után kormányozni nem lehet, de a LEÁLLÍT gombbal a következő előre beprogramozott ponton megállsz.</p>
+  <div class="mass" id="alcSpeeds"></div>
+  <div class="list" id="alcList"></div>
+  <span class="note" id="alcFuel"></span>
+  <p class="note">Az Alcubierre-metrika (1994) az általános relativitáselmélet érvényes megoldása, de negatív energiasűrűségű „egzotikus anyagot” igényel, amelyet nagy mennyiségben senki nem tud előállítani. Az első becslés a megfigyelhető univerzum tömegénél is többet adott; a későbbi optimalizálások ezt Jupiter-tömeg körülire vagy az alá csökkentették. Két ismert gond: a buborék eleje fénynél gyorsabb mozgásnál kauzálisan el van vágva a hajótól, ezért belülről nem irányítható; és a menet közben felgyűlő részecskék megálláskor erős sugárzásként csapódnak a cél felé (McMonigal, Lewis és O’Byrne, 2012).</p>
+</div>
+<div class="pad" id="pad">
+  <button class="btn" id="bAlc" type="button">ALCU&shy;BIERRE</button>
+  <button class="btn" id="bBrake" type="button">FÉK</button>
+  <button class="btn" id="bWarp" type="button">WARP</button>
+</div>
+
+<div class="ov" id="ov">
+  <div class="card" id="card"></div>
+</div>
+
+<script>
+(() => {
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const rc = document.getElementById('radar'), rctx = rc.getContext('2d');
+const saEl = document.getElementById('sa');
+let W = 0, H = 0, DPR = 1, SA = {t:0,r:0,b:0,l:0};
+function resize(){ DPR = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight;
+  cv.width = Math.round(W*DPR); cv.height = Math.round(H*DPR); ctx.setTransform(DPR,0,0,DPR,0,0);
+  const cs = getComputedStyle(saEl); SA = {t:parseFloat(cs.paddingTop)||0, r:parseFloat(cs.paddingRight)||0, b:parseFloat(cs.paddingBottom)||0, l:parseFloat(cs.paddingLeft)||0}; }
+addEventListener('resize', resize); resize();
+
+// ---- Fizika (játék-egységek) ----
+const C = 900;                 // fénysebesség, egység/s
+const RS = 193;                // Schwarzschild-sugár
+const GM = 1.6e7;              // vonzás – csak a lyuk közelében erős
+const ISCO = 3*RS;             // legbelső stabil körpálya
+const SHADOW = 2.6*RS;         // a fekete lyuk árnyéka
+const TAU = Math.PI*2;
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
+
+const stars = [];
+for (let i=0;i<950;i++) stars.push({u:Math.random(), v:Math.random(), d:0.015+Math.random()**2*0.12,
+  b:0.35+Math.random()*0.65, s:Math.random()<0.08?1.8:1, warm:Math.random()});
+const disk = [];
+for (let i=0;i<560;i++){ const r = RS*(3 + 7*Math.random()**1.6);
+  disk.push({r, a:Math.random()*TAU, w:Math.sqrt(GM*r)/(r-RS)/r*3, len:0.08+Math.random()*0.35, b:0.25+Math.random()*0.75}); }
+
+// tesszerakt (4D kocka)
+const TV = []; for (let i=0;i<16;i++) TV.push([i&1?1:-1, i&2?1:-1, i&4?1:-1, i&8?1:-1]);
+const TE = []; for (let i=0;i<16;i++) for (let j=i+1;j<16;j++){ const x=i^j; if (x && !(x&(x-1))) TE.push([i,j]); }
+
+let S, mode = 'menu', camAng = -Math.PI/2;
+function reset(){
+  const r0 = 9000, v0 = Math.sqrt(GM*r0)/(r0-RS), g0 = 1/Math.sqrt(1-(v0/C)**2);
+  const radii = [560, 2600, 6000, 11000, 17000];
+  const beacons = radii.map((r,i) => { const a = Math.PI*0.35 + i*2.1 + Math.random()*0.8; return {x:Math.cos(a)*r, y:Math.sin(a)*r, r, got:false, id:i+1}; });
+  S = { x:r0, y:0, w:0, px:0, py:-v0*g0, vx:0, vy:-v0, ang:-Math.PI/2, tE:0, tau:0, energy:100, beta:0, gamma:1, rate:1, rmin:r0,
+        gmax:1, hit95:false, hit99:false, trail:[], parts:[], beacons, collected:0, camx:r0, camy:0, zoom:0.3, thrust:0,
+        dead:false, inside:false, visits:0, wh:null, hypers:[], enterT:0, flash:0,
+        photons:[], pairs:[], fired:0, captured:0, psr:{x:-9000, y:12500}, psrPhase:0, psrFlash:0, theories:{}, visited:{}, ap:null, exotic:3, alc:null, alcBlast:0, zn:null, anti:false, loop:false, cl:1,
+        mission, home:{x:r0, y:0}, twinReady:false, cargo:3, cargoObjs:[], penrose:0, gw:newGW(), gwBuf:[], hw:0, gwA:0, gwOm:0, gwFlash:0 };
+  if (mission==='twin'){ S.beacons = []; }
+  camAng = S.ang; setInsideUI(false);
+}
+
+// ---- Bemenet ----
+const keys = {};
+addEventListener('keydown', e => { keys[e.code] = true;
+  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+  if ((e.code==='Enter'||e.code==='Space') && mode!=='play' && !ov.hidden) start(); });
+addEventListener('keyup', e => { keys[e.code] = false; });
+
+// fix helyű joystick, bal alul
+const JR = 66;
+const joy = {on:false, id:null, x:0, y:0};
+const SLH = 150, SLW = 56;
+const thr = {on:false, id:null, v:0};
+const slRect = () => { const x = W - SA.r - 22 - SLW, y = H - SA.b - 22 - SLH; return {x, y, cx:x+SLW/2, cy:y+SLH/2}; };
+function setThr(e){ const r = slRect(); thr.v = clamp(-(e.clientY - r.cy)/(SLH/2), -1, 1); }
+const joyCenter = () => [SA.l + 22 + JR, H - SA.b - 22 - JR];
+function setJoy(e){ const [jx,jy] = joyCenter(); let dx = e.clientX-jx, dy = e.clientY-jy; const m = Math.hypot(dx,dy);
+  if (m>JR){ dx*=JR/m; dy*=JR/m; } joy.x = dx; joy.y = dy; }
+cv.addEventListener('pointerdown', e => { if (mode!=='play') return; const [jx,jy] = joyCenter(); const r = slRect();
+  if (Math.hypot(e.clientX-jx, e.clientY-jy) < JR*1.7){ joy.on = true; joy.id = e.pointerId; setJoy(e); cv.setPointerCapture(e.pointerId); }
+  else if (e.clientX > r.x - 40 && e.clientY > r.y - 30 && e.clientY < r.y + SLH + 30){ thr.on = true; thr.id = e.pointerId; setThr(e); cv.setPointerCapture(e.pointerId); } });
+cv.addEventListener('pointermove', e => { if (joy.on && e.pointerId===joy.id) setJoy(e); if (thr.on && e.pointerId===thr.id) setThr(e); });
+const endJoy = e => { if (e.pointerId===joy.id){ joy.on=false; joy.x=0; joy.y=0; joy.id=null; } if (e.pointerId===thr.id){ thr.on=false; thr.v=0; thr.id=null; } };
+cv.addEventListener('pointerup', endJoy); cv.addEventListener('pointercancel', endJoy);
+
+const btn = {warp:false, brake:false};
+function holdBtn(el, prop){
+  const on = e => { e.preventDefault(); btn[prop]=true; el.classList.add('on'); try{el.setPointerCapture(e.pointerId)}catch(_){} };
+  const off = () => { btn[prop]=false; el.classList.remove('on'); };
+  el.addEventListener('pointerdown', on); el.addEventListener('pointerup', off); el.addEventListener('pointercancel', off); el.addEventListener('lostpointercapture', off);
+  el.addEventListener('contextmenu', e => e.preventDefault());
+}
+const bWarp = document.getElementById('bWarp'), bBrake = document.getElementById('bBrake');
+holdBtn(bWarp,'warp'); holdBtn(bBrake,'brake');
+const toggleView = () => { view = view==='cockpit' ? 'map' : 'cockpit'; toast(view==='cockpit' ? 'Belső nézet' : 'Térkép nézet', '', 1.2); };
+document.getElementById('bView').addEventListener('click', toggleView);
+addEventListener('keydown', e => { if (e.code==='KeyV' && mode==='play') toggleView(); });
+
+const toastEl = document.getElementById('toast'); let toastT = 0, toastKey = '';
+function toast(msg, kind='', dur=2.2){ toastEl.textContent = msg; toastEl.className = 'toast on' + (kind?' '+kind:''); toastT = dur; toastKey = msg; }
+
+const $ = id => document.getElementById(id);
+function setInsideUI(on){
+  $('pad').classList.toggle('inside', on); $('hud').classList.toggle('inside', on);
+  bWarp.textContent = on ? '+W' : 'WARP'; bBrake.textContent = on ? '−W' : 'FÉK';
+  $('kDist').textContent = on ? 'W-tengely' : 'Távolság';
+}
+
+// ---- Szimuláció: normál tér ----
+function stepOut(dt, input, dtp){
+  const r = Math.hypot(S.x, S.y);
+  const a = GM/((r-RS)**2);   // Paczyński–Wiita: 3 rs-en belül nincs stabil pálya
+  let g = Math.sqrt(1 + (S.px*S.px + S.py*S.py)/(C*C));
+  S.px += -S.x/r*a*dt*g; S.py += -S.y/r*a*dt*g;
+  frameDrag(dt, r, g);
+  if (S.ap) apControl(dt); else {
+  S.ang += input.turn*(view==='cockpit'?2.4:5)*dt;
+  if (input.target!=null) S.ang += clamp(wrap(input.target - S.ang), -6*dt, 6*dt);
+  let F = 0;
+  if (input.warp && S.energy>0){ F = 1100; S.energy = Math.max(0, S.energy - 6*dtp); }   // állandó saját gyorsulás: a rapiditás a hajóidővel egyenletesen nő
+  else if (input.thrust>0) F = 420*input.thrust;
+  S.thrust = F;
+  S.px += Math.cos(S.ang)*F*dt; S.py += Math.sin(S.ang)*F*dt;
+  if (input.brake){ const pm = Math.hypot(S.px,S.py); if (pm > 0){
+    // relativisztikus fékezés: ugyanaz a hajtómű visszafelé, ugyanakkora saját gyorsulással
+    const k = Math.max(0, pm - 1100*dt)/pm; S.px *= k; S.py *= k; } }
+  }
+  if (!input.warp && S.energy < 100) S.energy = Math.min(100, S.energy + 12*dtp);
+  g = Math.sqrt(1 + (S.px*S.px + S.py*S.py)/(C*C));
+  S.vx = S.px/g; S.vy = S.py/g;
+  S.x += S.vx*dt; S.y += S.vy*dt;
+  S.gamma = g; S.beta = Math.hypot(S.vx,S.vy)/C;
+  const r2 = Math.hypot(S.x, S.y);
+  S.rate = Math.sqrt(Math.max(0, 1 - RS/r2))/g;
+  S.tE += dt; S.tau += dt*S.rate;
+  S.rmin = Math.min(S.rmin, r2); S.gmax = Math.max(S.gmax, g);
+  return r2;
+}
+
+// ---- Szimuláció: a lyuk belseje, 4D tér ----
+function enterInside(){
+  S.inside = true; S.visits++; S.enterT = S.tE; S.flash = 1;
+  S.x = 0; S.y = 1100; S.w = 0; S.px = 180; S.py = 0; S.trail = []; S.camx = S.x; S.camy = S.y;
+  const a = Math.random()*TAU, d = 1800 + Math.random()*700;
+  S.wh = {x:Math.cos(a)*d, y:Math.sin(a)*d, w:(Math.random()<.5?-1:1)*(380+Math.random()*320)};
+  S.hypers = [];
+  for (let i=0;i<9;i++){ const b = Math.random()*TAU, e = 600 + Math.random()*2600;
+    S.hypers.push({x:Math.cos(b)*e, y:Math.sin(b)*e, w:(Math.random()*2-1)*800, R:160+Math.random()*260, vw:(Math.random()*2-1)*60, hue:Math.random()}); }
+  makeZones(); setInsideUI(true);
+  toast('Négydimenziós tér · +W / −W: a negyedik irányba lépsz. Hat elmélet rejtőzik itt – a radar mutatja őket', 'vio', 5);
+}
+function exitOut(){
+  const years = (S.tE - S.enterT)/365;
+  S.inside = false; S.flash = 1; S.w = 0;
+  const a = Math.random()*TAU;
+  S.x = Math.cos(a)*14500; S.y = Math.sin(a)*14500; S.px = Math.cos(a)*500; S.py = Math.sin(a)*500;
+  S.ang = a; camAng = a; S.trail = []; S.camx = S.x; S.camy = S.y;
+  setInsideUI(false); S.anti = false; S.loop = false; S.cl = 1; discover('bounce');
+  toast(`Egy fehér lyuk kilökött · kint ${fmt(years)} év telt el`, 'vio', 4);
+}
+function stepIn(dt, input){
+  const d4 = Math.hypot(S.x, S.y, S.w);
+  const a = 9e6/(d4*d4 + 4e4);
+  let g = Math.sqrt(1 + (S.px*S.px + S.py*S.py)/(C*C));
+  const dxy = Math.hypot(S.x,S.y) || 1;
+  const sg = S.anti ? -1.6 : 1;
+  S.px += -S.x/dxy*a*dt*sg; S.py += -S.y/dxy*a*dt*sg;
+  S.ang += input.turn*(view==='cockpit'?2.4:5)*dt;
+  if (input.target!=null) S.ang += clamp(wrap(input.target - S.ang), -6*dt, 6*dt);
+  const F = input.thrust>0 ? 420*input.thrust : 0; S.thrust = F;
+  S.px += Math.cos(S.ang)*F*dt; S.py += Math.sin(S.ang)*F*dt;
+  if (input.jbrake){ const k = Math.exp(-1.4*dt); S.px*=k; S.py*=k; }
+  if (input.warp) S.w += 320*dt;
+  if (input.brakeBtn) S.w -= 320*dt;
+  if (S.energy < 100) S.energy = Math.min(100, S.energy + 12*dt);
+  const Cl = inBaby() ? C*0.35 : C; S.cl = Cl/C;
+  g = Math.sqrt(1 + (S.px*S.px + S.py*S.py)/(Cl*Cl));
+  S.vx = S.px/g; S.vy = S.py/g; S.x += S.vx*dt; S.y += S.vy*dt;
+  S.gamma = g; S.beta = Math.hypot(S.vx,S.vy)/Cl;
+  S.rate = S.loop ? -1.5 : 1/g;
+  S.tE += dt*90; S.tau += dt*S.rate; S.gmax = Math.max(S.gmax, g);
+  for (const h of S.hypers){ h.w += h.vw*dt; if (Math.abs(h.w)>900) h.vw *= -1; }
+  if (Math.hypot(S.x,S.y) > 4200){ S.x *= -0.9; S.y *= -0.9; S.trail = []; S.camx = S.x; S.camy = S.y; toast('A 4D tér visszahajlik önmagába', 'vio'); discover('holo'); }
+}
+
+function update(dt){
+  const input = {turn:0, target:null, thrust:0, warp:false, brake:false, brakeBtn:false, jbrake:false};
+  if (mode==='play'){
+    if (keys.ArrowLeft||keys.KeyA) input.turn -= 1;
+    if (keys.ArrowRight||keys.KeyD) input.turn += 1;
+    if (keys.ArrowUp||keys.KeyW) input.thrust = 1;
+    input.warp = keys.Space||keys.ShiftLeft||keys.ShiftRight||keys.KeyE||btn.warp;
+    input.brakeBtn = keys.ArrowDown||keys.KeyS||keys.KeyQ||btn.brake;
+    if (joy.on){ if (view==='cockpit'){ const jx = joy.x/JR; if (Math.abs(jx)>0.1) input.turn = clamp(input.turn + Math.sign(jx)*(Math.abs(jx)-0.1)/0.9, -1, 1); }
+      else if (Math.hypot(joy.x,joy.y) > JR*0.25) input.target = Math.atan2(joy.y, joy.x); }
+    if (thr.on){ if (thr.v>0.08) input.thrust = Math.max(input.thrust, (thr.v-0.08)/0.92); if (thr.v<-0.25) input.jbrake = true; }
+    input.brake = input.brakeBtn || input.jbrake;
+    if (S.ap && (input.thrust>0 || input.warp || input.brake || input.turn || input.target!=null)){ S.ap = null; toast('Autopilóta kikapcsolva', '', 1.6); }
+  }
+  if (mode==='play' || mode==='menu'){
+    if (S.inside){
+      stepIn(dt, input);
+      if (mode==='play'){ zoneEffects(dt);
+        const d4 = Math.hypot(S.x,S.y,S.w);
+        if (d4 < 150) die('sing');
+        else if (d4 < 520 && !toastKey) toast('Szingularitás közelében – lépj el a W-tengelyen!', 'danger', 1.6);
+        const wh = S.wh; if (Math.hypot(S.x-wh.x, S.y-wh.y, S.w-wh.w) < 170) exitOut();
+      }
+    } else if (S.alc){ stepAlc(dt);
+    } else {
+      // a játék órája a pilóta órája: egy valódi másodperc = egy hajó-másodperc; kint ennél γ/√(1−rs/r)-szer több idő telik
+      let r = r0(); const grav = Math.sqrt(Math.max(0.0025, 1 - RS/r)); const dtc = dt*S.gamma/grav;
+      S.dtc = dtc; const n = clamp(Math.ceil(6*dtc/Math.max(dt,1e-4)), 6, 500);
+      for (let i=0;i<n;i++){ const ax0 = S.x, ay0 = S.y; r = stepOut(dtc/n, input, dt/n); if (mode==='play') checkPlaces(ax0, ay0);
+        if (mode==='play') for (const b of S.beacons) if (!b.got && Math.hypot(S.x-b.x, S.y-b.y) < 95) b.hit = true; }
+      if (mode==='menu' && r < ISCO*1.2) reset();
+      if (mode==='play'){
+        if (!S.hit95 && S.beta>0.95){ S.hit95=true; toast('0,95 c – a csillagok előretorlódnak'); }
+        if (!S.hit99 && S.beta>0.99){ S.hit99=true; toast('0,99 c – a hajóóra hétszer lassabb'); }
+        checkTwin();
+        const tg = tidalG(r/RS);
+        if (tg > HULL_G){ die('tidal'); }
+        else if (r < RS) enterInside();
+        else if (tg > 100 && !toastKey) toast(`Árapály: ${sci(tg)} g – a hajótest ${sci(HULL_G)} g-t bír`, 'danger', 1.6);
+        else if (r < ISCO && !toastKey) toast('3 rs-en belül nincs stabil pálya', 'danger', 1.6);
+        else if (r < 7*RS && (S.x*S.vx+S.y*S.vy)<0 && !toastKey) toast('Gravitációs riasztás – fordulj el a lyuktól!', 'danger', 1.6);
+        for (const b of S.beacons){ if (b.got) continue;
+          if (b.hit || Math.hypot(S.x-b.x, S.y-b.y) < 95){ b.got = true; S.collected++;
+            for (let i=0;i<40;i++){ const a = Math.random()*TAU, v = 80+Math.random()*260; S.parts.push({x:b.x,y:b.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:1,c:'130,200,255'}); }
+            toast(`Jeladó ${b.id} begyűjtve · ${S.collected}/5`);
+            if (S.collected===S.beacons.length) setTimeout(win, 600);
+          } }
+      }
+    }
+  }
+  if (mode!=='dead'){ const dw = S.inside ? dt : (S.dtc || dt);
+    stepPhotons(dw); stepPairs(dw); stepCargo(dw);
+    stepGW(dw);
+    if (engine && actx){ const rap = Math.atanh(Math.min(0.999999999, S.beta)); const on = soundOn && mode==='play';
+      const gn = !on ? 0 : (S.thrust>1000 ? 0.06 : (S.thrust>0 ? 0.03 : (S.beta>0.3 ? 0.012 : 0)));
+      try{ engine.g.gain.setTargetAtTime(gn, actx.currentTime, 0.08); engine.o.frequency.setTargetAtTime(32 + rap*24, actx.currentTime, 0.1); engine.f.frequency.setTargetAtTime(220 + rap*160, actx.currentTime, 0.1); }catch(_){} }
+    if (chirp && actx){ const on = soundOn && mode==='play' && !S.inside; try{ chirp.g.gain.setTargetAtTime(on ? clamp(S.gwA*0.05, 0, 0.12) : 0, actx.currentTime, 0.05);
+      chirp.o.frequency.setTargetAtTime(clamp(40 + S.gwOm*12, 40, 620), actx.currentTime, 0.05); }catch(_){} }
+    if (!S.inside){ const D = psrDoppler(); const prev = S.psrPhase; S.psrPhase += TAU/PSR_P*D*dt;
+      if (Math.floor(S.psrPhase/TAU) !== Math.floor(prev/TAU)){ S.psrFlash = 1; const d = Math.hypot(S.psr.x-S.x, S.psr.y-S.y); if (mode==='play') click(clamp(2500/d, 0.03, 0.22)); } } }
+  S.psrFlash = Math.max(0, S.psrFlash - dt*5);
+  S.alcBlast = Math.max(0, (S.alcBlast||0) - dt*0.5);
+  if ((frameU++ % 8)===0){ updateSci(); if (!mapEl.hidden){ drawMap(); if (!mapSel) updateApInfo(); } }
+  if (S.thrust>0 && mode!=='dead'){ const back = S.ang+Math.PI; const warp = S.thrust>1000;
+    for (let i=0;i<(warp?3:1);i++){ const a = back + (Math.random()-.5)*0.5, v = (warp?600:200)*(0.5+Math.random());
+      S.parts.push({x:S.x - Math.cos(S.ang)*10, y:S.y - Math.sin(S.ang)*10, vx:S.vx+Math.cos(a)*v, vy:S.vy+Math.sin(a)*v, life:0.6,
+        c: S.inside?'190,150,255':(warp?'150,210,255':'255,176,74')}); } }
+  for (const p of S.parts){ p.x += p.vx*dt; p.y += p.vy*dt; p.life -= dt*1.4; }
+  S.parts = S.parts.filter(p => p.life>0);
+  if (mode!=='dead'){ S.trail.push(S.x, S.y); if (S.trail.length>180) S.trail.splice(0,2); }
+  for (const d of disk) d.a += d.w*(S.inside ? dt : Math.min(S.dtc||dt, dt*6));
+  // kamera: követ, és mindig a hajó orra felé néz
+  const k = 1 - Math.exp(-dt*(3 + (S.gamma-1)*4));
+  const LA = Math.min(W,H)*0.2/Math.max(0.05,S.zoom);
+  S.camx += (S.x + Math.cos(S.ang)*LA - S.camx)*k; S.camy += (S.y + Math.sin(S.ang)*LA - S.camy)*k;
+  const base = Math.min(W,H)/1500;
+  const zt = base * (S.inside ? 1.25 : 1.4/(1 + 0.7*S.beta)) * (mode==='menu'?0.75:1);
+  S.zoom += (zt - S.zoom)*(1-Math.exp(-dt*2));
+  S.flash = Math.max(0, S.flash - dt*1.2);
+  if (discTimer>0){ discTimer -= dt; if (discTimer<=0) discEl.hidden = true; }
+  if (toastT>0){ toastT -= dt; if (toastT<=0){ toastEl.className='toast'; toastKey=''; } }
+}
+
+// ---- Rajzolás ----
+let V; // nézet-paraméterek a képkockához
+function toS(x,y){ const dx=(x-S.camx)*V.z, dy=(y-S.camy)*V.z; return [V.cx + dx*V.cr - dy*V.sr, V.cy + dx*V.sr + dy*V.cr]; }
+
+function draw(t){
+  const z = S.zoom, rot = 0;
+  let shx = 0, shy = 0;
+  const r = Math.hypot(S.x,S.y);
+  if (mode==='play' && !S.inside && r < 4*RS){ const q = (4*RS - r)/(3*RS); shx = (Math.random()-.5)*6*q; shy = (Math.random()-.5)*6*q; }
+  V = {z, rot, cr:Math.cos(rot), sr:Math.sin(rot), cx:W/2+shx, cy:H*0.5+shy};
+  ctx.globalCompositeOperation = 'source-over';
+  if (view==='cockpit'){ const rr = -(S.ang + Math.PI/2); V.rot = rr; V.cr = Math.cos(rr); V.sr = Math.sin(rr); drawCockpit(t); }
+  else { if (S.inside) drawInside(t); else drawOutside(t); drawCommon(t); }
+  if (S.alc || S.alcBlast>0) drawAlcOverlay(t);
+  drawControls(t);
+}
+
+function drawOutside(t){
+  const {z, cr, sr, cx, cy} = V;
+  ctx.fillStyle = '#04050a'; ctx.fillRect(0,0,W,H);
+  drawNebulaTop();
+  const [bx, by] = toS(0,0);
+  const beta = S.beta, gamma = S.gamma;
+  const sp = Math.hypot(S.vx, S.vy) || 1;
+  const vdx = (S.vx*cr - S.vy*sr)/sp, vdy = (S.vx*sr + S.vy*cr)/sp;
+  const thetaE = 3.2*RS*z, shadowR = SHADOW*z;
+  const D = Math.max(W,H) + 80;
+  const streak = beta>0.35 ? (beta-0.35)**2 * gamma * 26 : 0;
+  ctx.lineCap = 'round';
+  for (const s of stars){
+    const ux = ((s.u*D - S.camx*z*s.d) % D + D) % D - D/2;
+    const uy = ((s.v*D - S.camy*z*s.d) % D + D) % D - D/2;
+    let ox = ux*cr - uy*sr, oy = ux*sr + uy*cr;
+    ox *= 1 + S.hw; oy *= 1 - S.hw;
+    const rho = Math.hypot(ox,oy) || 1;
+    let Dop = 1;
+    if (beta > 0.02){
+      const cosT = (ox*vdx + oy*vdy)/rho, sinS = Math.sign(ox*vdy - oy*vdx) || 1;
+      const cosP = (cosT + beta)/(1 + beta*cosT); const sinP = Math.sqrt(Math.max(0,1-cosP*cosP));
+      ox = rho*(cosP*vdx - sinS*sinP*vdy); oy = rho*(cosP*vdy + sinS*sinP*vdx);
+      Dop = 1/(gamma*(1 - beta*cosP));
+    }
+    const sx = cx + ox, sy = cy + oy;
+    const lx = sx - bx, ly = sy - by, lr = Math.hypot(lx,ly) || 0.001;
+    const root = Math.sqrt(lr*lr + 4*thetaE*thetaE);
+    const r1 = (lr + root)/2, r2 = (root - lr)/2;
+    const nx = lx/lr, ny = ly/lr;
+    const px = bx + nx*r1, py = by + ny*r1;
+    const inView = px>-30 && px<W+30 && py>-30 && py<H+30;
+    const sec = r2 > shadowR && r2 < thetaE*1.05;
+    if (!inView && !sec) continue;
+    const mag = Math.min(3, r1/lr);
+    let cR=235, cG=238, cB=250;
+    if (s.warm>0.8){ cR=255; cG=226; cB=196; } else if (s.warm<0.15){ cR=200; cG=220; cB=255; }
+    if (Dop>1){ const q = Math.min(1,(Dop-1)/2); cR += (120-cR)*q; cG += (190-cG)*q; cB += (255-cB)*q; }
+    else if (Dop<1){ const q = Math.min(1,(1-Dop)*1.6); cR += (255-cR)*q; cG += (90-cG)*q; cB += (60-cB)*q; }
+    const al = clamp(s.b * Math.pow(Dop,1.2) * (0.6+0.4*mag) * (Dop < 0.6 ? Math.exp(-(0.6-Dop)*8) : 1), 0, 1);
+    const rgb = `${cR|0},${cG|0},${cB|0}`;
+    const sz = s.s * (mag>1.4 ? 1.5 : 1);
+    if (inView){
+      if (streak>0.5){ ctx.strokeStyle = `rgba(${rgb},${al.toFixed(3)})`; ctx.lineWidth = sz; ctx.beginPath(); ctx.moveTo(px,py);
+        const L = streak*Math.min(2.5,Dop); ctx.lineTo(px - vdx*L, py - vdy*L); ctx.stroke(); }
+      else { ctx.fillStyle = `rgba(${rgb},${al.toFixed(3)})`; ctx.fillRect(px, py, sz, sz); }
+    }
+    if (sec){ ctx.fillStyle = `rgba(${rgb},${(al*0.55).toFixed(3)})`; ctx.fillRect(bx - nx*r2, by - ny*r2, sz, sz); }
+  }
+
+  // fekete lyuk
+  const gr = RS*12*z + 1;
+  const glow = ctx.createRadialGradient(bx,by,shadowR*0.9, bx,by,gr);
+  glow.addColorStop(0,'rgba(255,170,80,0.22)'); glow.addColorStop(0.35,'rgba(255,110,40,0.07)'); glow.addColorStop(1,'rgba(255,90,30,0)');
+  ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(bx,by,gr,0,TAU); ctx.fill();
+  ctx.globalCompositeOperation = 'lighter';
+  for (const d of disk){
+    const q = (d.r - 3*RS)/(7*RS);
+    const beam = 0.55 + 0.45*Math.sin(d.a - t*0.0003);
+    ctx.strokeStyle = `rgba(255,${(238-150*q)|0},${(205-185*q)|0},${(d.b*beam*(1-q*0.6)*0.5).toFixed(3)})`;
+    ctx.lineWidth = Math.max(1, 3.2*z*(1-q*0.5));
+    ctx.beginPath(); ctx.arc(bx,by,d.r*z,d.a+V.rot,d.a+V.rot+d.len); ctx.stroke();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(bx,by,shadowR,0,TAU); ctx.fill();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = 'rgba(255,225,180,0.85)'; ctx.lineWidth = Math.max(1.2, 8.8*z);
+  ctx.beginPath(); ctx.arc(bx,by,shadowR,0,TAU); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,200,140,0.25)'; ctx.lineWidth = Math.max(3, 40*z);
+  ctx.beginPath(); ctx.arc(bx,by,shadowR*1.04,0,TAU); ctx.stroke();
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.setLineDash([4,5]); ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(180,140,255,0.7)'; ctx.beginPath(); ctx.arc(bx,by,RS*z,0,TAU); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,90,82,0.22)'; ctx.beginPath(); ctx.arc(bx,by,ISCO*z,0,TAU); ctx.stroke();
+  ctx.setLineDash([]);
+  if (z > 0.18){ ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign='center';
+    ctx.fillStyle = 'rgba(200,175,255,0.9)'; ctx.fillText('ESEMÉNYHORIZONT · 4D KAPU', bx, by + 4);
+    ctx.fillStyle = 'rgba(255,120,110,0.5)'; ctx.fillText('3 rs · nincs stabil pálya', bx, by - ISCO*z - 6); }
+  ctx.setLineDash([2,4]); ctx.strokeStyle = 'rgba(255,240,200,0.35)'; ctx.beginPath(); ctx.arc(bx,by,1.5*RS*z,0,TAU); ctx.stroke(); ctx.setLineDash([]);
+  if (z > 0.3){ ctx.fillStyle = 'rgba(255,240,200,0.6)'; ctx.fillText('fotongömb 1,5 rs', bx, by + 1.5*RS*z + 12); }
+  drawPlacesTop(t); drawAlcTop(t); drawErgoTop(t, bx, by); drawPairs(); drawGWTop(t); drawPulsarTop(t); drawHomeTop(t); drawPhotonsTop();
+
+  // jeladók
+  ctx.textAlign = 'center';
+  for (const b of S.beacons){ if (b.got) continue;
+    const [x,y] = toS(b.x,b.y); if (x<-60||x>W+60||y<-60||y>H+60) continue;
+    const pulse = (t*0.0012 + b.id*0.3) % 1;
+    ctx.strokeStyle = `rgba(130,200,255,${(1-pulse)*0.8})`; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(x,y,8 + pulse*28,0,TAU); ctx.stroke();
+    ctx.fillStyle = '#82c8ff'; ctx.beginPath(); ctx.moveTo(x,y-7); ctx.lineTo(x+7,y); ctx.lineTo(x,y+7); ctx.lineTo(x-7,y); ctx.fill();
+    ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.fillStyle = 'rgba(200,228,255,0.85)';
+    ctx.fillText(`J${b.id} · ${(b.r/RS).toFixed(1)} rs`, x, y - 16);
+  }
+  if (mode==='play' && r0() < 5*RS){ const q = clamp((5*RS - r0())/(4*RS),0,1);
+    const vg = ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.3, W/2,H/2,Math.max(W,H)*0.75);
+    vg.addColorStop(0,'rgba(255,40,30,0)'); vg.addColorStop(1,`rgba(255,40,30,${(q*0.45).toFixed(3)})`); ctx.fillStyle = vg; ctx.fillRect(0,0,W,H); }
+}
+const r0 = () => Math.hypot(S.x,S.y);
+
+function drawTess(t, cx, cy, scale, alpha){
+  const a = t*0.00035, b = t*0.00022, c = S.w/260;
+  const ca=Math.cos(a), sa=Math.sin(a), cb=Math.cos(b), sb=Math.sin(b), cc=Math.cos(c), sc=Math.sin(c);
+  const P = TV.map(([x,y,zz,w]) => {
+    const x1 = x*ca - w*sa, w1 = x*sa + w*ca;
+    const y1 = y*cb - zz*sb, z1 = y*sb + zz*cb;
+    const z2 = z1*cc - w1*sc, w2 = z1*sc + w1*cc;
+    const k = 2.4/(2.4 - w2*0.6);
+    const X = x1*k, Y = y1*k, Z = z2*k;
+    const k2 = 4/(4 - Z*0.5);
+    return [cx + X*k2*scale, cy + Y*k2*scale, w2];
+  });
+  ctx.lineWidth = 1.2;
+  for (const [i,j] of TE){
+    const q = clamp((P[i][2]+P[j][2])/4*0.5+0.5, 0, 1);
+    ctx.strokeStyle = `rgba(${(180+75*q)|0},${(140+50*q)|0},${(255-150*q)|0},${alpha})`;
+    ctx.beginPath(); ctx.moveTo(P[i][0],P[i][1]); ctx.lineTo(P[j][0],P[j][1]); ctx.stroke();
+  }
+}
+
+function drawInside(t){
+  const {z} = V;
+  const bg = ctx.createRadialGradient(W/2,H*0.45,0, W/2,H*0.45,Math.max(W,H)*0.8);
+  bg.addColorStop(0, S.anti ? '#0b2a26' : '#1a0f2e'); bg.addColorStop(1, S.anti ? '#020c0b' : '#07040e'); ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+  // tesszerakt-csarnok a háttérben
+  drawTess(t, W/2, H*0.42, Math.min(W,H)*0.42, 0.13);
+  drawTess(t*1.3, W/2, H*0.42, Math.min(W,H)*0.17, 0.32);
+  // két egymáson elcsúszó rács: a W-tengelyen mozogva ellentétes irányba siklanak
+  const G = 320, R = Math.hypot(W,H)/z*0.6;
+  const drawGrid = (off, col) => {
+    ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.beginPath();
+    const x0 = Math.floor((S.camx - R - off)/G)*G + off, y0 = Math.floor((S.camy - R - off)/G)*G + off;
+    for (let x = x0; x < S.camx + R; x += G){ const [a1,b1] = toS(x, S.camy-R), [a2,b2] = toS(x, S.camy+R); ctx.moveTo(a1,b1); ctx.lineTo(a2,b2); }
+    for (let y = y0; y < S.camy + R; y += G){ const [a1,b1] = toS(S.camx-R, y), [a2,b2] = toS(S.camx+R, y); ctx.moveTo(a1,b1); ctx.lineTo(a2,b2); }
+    ctx.stroke();
+  };
+  drawGrid(S.w*0.7, 'rgba(180,140,255,0.16)');
+  drawGrid(-S.w*0.7, 'rgba(255,190,110,0.09)');
+  // hipergömbök metszetei
+  ctx.textAlign = 'center'; ctx.font = '500 10px "IBM Plex Mono", monospace';
+  for (const h of S.hypers){
+    const dw = S.w - h.w; const [x,y] = toS(h.x,h.y);
+    if (Math.abs(dw) < h.R){ const rr = Math.sqrt(h.R*h.R - dw*dw)*z;
+      const gg = ctx.createRadialGradient(x,y,rr*0.2,x,y,rr);
+      const col = h.hue<0.5 ? '180,140,255' : '120,220,255';
+      gg.addColorStop(0,`rgba(${col},0.05)`); gg.addColorStop(0.85,`rgba(${col},0.18)`); gg.addColorStop(1,`rgba(${col},0.55)`);
+      ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(x,y,rr,0,TAU); ctx.fill(); }
+    else if (Math.abs(dw) < h.R + 250){ ctx.strokeStyle = 'rgba(180,140,255,0.25)'; ctx.setLineDash([2,4]);
+      ctx.beginPath(); ctx.arc(x,y,6,0,TAU); ctx.stroke(); ctx.setLineDash([]); }
+  }
+  drawZonesTop(t);
+  // szingularitás
+  {
+    const [x,y] = toS(0,0), aw = Math.abs(S.w);
+    if (aw < 520){ const halo = Math.sqrt(520*520 - aw*aw)*z;
+      const gg = ctx.createRadialGradient(x,y,0,x,y,halo); gg.addColorStop(0,'rgba(255,60,50,0.35)'); gg.addColorStop(1,'rgba(255,60,50,0)');
+      ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(x,y,halo,0,TAU); ctx.fill(); }
+    if (aw < 150){ const core = Math.sqrt(150*150 - aw*aw)*z;
+      ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(x,y,core,0,TAU); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,90,82,0.9)'; ctx.lineWidth = 2; ctx.stroke(); }
+    else { ctx.strokeStyle = 'rgba(255,90,82,0.5)'; ctx.setLineDash([3,4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x,y,8,0,TAU); ctx.stroke(); ctx.setLineDash([]); }
+    ctx.fillStyle = 'rgba(255,130,120,0.75)'; ctx.fillText(`SZINGULARITÁS · w=0`, x, y - 16 - (aw<150?Math.sqrt(150*150-aw*aw)*z:0));
+  }
+  // fehér lyuk (kijárat)
+  {
+    const wh = S.wh, [x,y] = toS(wh.x,wh.y), dw = S.w - wh.w;
+    if (Math.abs(dw) < 170){ const rr = Math.sqrt(170*170 - dw*dw)*z;
+      const gg = ctx.createRadialGradient(x,y,0,x,y,rr*1.8); gg.addColorStop(0,'rgba(255,255,255,0.95)'); gg.addColorStop(0.5,'rgba(200,235,255,0.5)'); gg.addColorStop(1,'rgba(200,235,255,0)');
+      ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(x,y,rr*1.8,0,TAU); ctx.fill(); }
+    const pulse = (t*0.0015)%1;
+    ctx.strokeStyle = `rgba(230,245,255,${(0.7*(1-pulse)).toFixed(3)})`; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(x,y,10+pulse*24,0,TAU); ctx.stroke();
+    ctx.fillStyle = 'rgba(230,245,255,0.9)';
+    const need = Math.round(wh.w - S.w);
+    ctx.fillText(Math.abs(dw)<170 ? 'FEHÉR LYUK · repülj bele' : `FEHÉR LYUK · ${need>0?'+':''}${need} W`, x, y - 22);
+    // iránymutató nyíl a hajó körül
+    const [sx,sy] = toS(S.x,S.y); const ang = Math.atan2(y-sy, x-sx);
+    const dist = Math.hypot(x-sx, y-sy);
+    if (dist > 80){ ctx.save(); ctx.translate(sx + Math.cos(ang)*48, sy + Math.sin(ang)*48); ctx.rotate(ang);
+      ctx.fillStyle = 'rgba(230,245,255,0.8)'; ctx.beginPath(); ctx.moveTo(8,0); ctx.lineTo(-5,-5); ctx.lineTo(-5,5); ctx.fill(); ctx.restore(); }
+  }
+}
+
+// ---- Belső (pilótafülke) nézet ----
+let view = 'cockpit';
+const CEL = [];
+for (let i=0;i<1700;i++){ let x,y,zz;
+  if (Math.random()<0.45){ const lon = Math.random()*TAU, lat = (Math.random()+Math.random()+Math.random()-1.5)*0.14;
+    x = Math.cos(lat)*Math.cos(lon); y = Math.cos(lat)*Math.sin(lon); zz = Math.sin(lat); }
+  else { zz = Math.random()*2-1; const lon = Math.random()*TAU, rr = Math.sqrt(1-zz*zz); x = rr*Math.cos(lon); y = rr*Math.sin(lon); }
+  CEL.push({x, y, z:zz, b:0.3+Math.random()**2*0.7, s:Math.random()<0.06?1.8:1, warm:Math.random()}); }
+const DUST = []; for (let i=0;i<150;i++) DUST.push({x:0,y:0,z:0,live:false});
+
+function drawCockpit(t){
+  // címkék ütközés nélkül: a horizont mentén egymás fölé rendezi a feliratokat
+  const placed = [], ft = CanvasRenderingContext2D.prototype.fillText;
+  ctx.fillText = function(txt, x, y){ if (this.textAlign!=='center') return ft.call(this, txt, x, y);
+    const w = this.measureText(txt).width; let yy = y;
+    const offs = [0,13,-13,26,-26,39,-39,52,-52,65,-65];
+    for (const o of offs){ yy = y + o; if (!placed.some(b => Math.abs(b.x-x) < (b.w+w)/2+6 && Math.abs(b.y-yy) < 12)) break; }
+    placed.push({x, y:yy, w}); return ft.call(this, txt, x, yy); };
+  try { drawCockpitInner(t); } finally { delete ctx.fillText; }
+}
+function drawCockpitInner(t){
+  const fx = Math.cos(S.ang), fy = Math.sin(S.ang), rxv = -fy, ryv = fx;
+  const FOV = 1.75, f = (W/2)/Math.tan(FOV/2);
+  const hcx = W/2, hcy = H*0.44;
+  // a buborékban a hajó áll, de elölről erősen kékeltolódott, összetorlódott fény jön – ezt a képet a látszólagos 0,96 c-s aberrációval közelítjük
+  const beta = S.alc ? 0.96 : S.beta, gamma = S.alc ? 3.57 : S.gamma, sp = S.alc ? 1 : (Math.hypot(S.vx,S.vy) || 1), vux = S.alc ? S.alc.ux : S.vx/sp, vuy = S.alc ? S.alc.uy : S.vy/sp;
+  const aber = (nx,ny,nz) => {
+    if (beta < 0.01) return [nx,ny,nz,1];
+    const c = nx*vux + ny*vuy, c2 = (c + beta)/(1 + beta*c);
+    let px = nx - vux*c, py = ny - vuy*c, pz = nz; const pl = Math.hypot(px,py,pz);
+    if (pl < 1e-6) return [vux,vuy,0,1/(gamma*(1-beta*Math.sign(c)))];
+    px/=pl; py/=pl; pz/=pl; const s2 = Math.sqrt(Math.max(0,1-c2*c2));
+    return [vux*c2 + px*s2, vuy*c2 + py*s2, pz*s2, 1/(gamma*(1 - beta*c2))]; };
+  const proj = (nx,ny,nz) => { const a = nx*fx + ny*fy; if (a < 0.06) return null; const b = nx*rxv + ny*ryv; return [hcx + f*b/a, hcy - f*nz/a, a]; };
+  const apex = beta>0.05 ? proj(vux,vuy,0) : null;
+  const Dmax = beta>0.05 ? Math.sqrt((1+beta)/(1-beta)) : 1;
+
+  if (S.inside){ drawCockpit4D(t, f, hcx, hcy, fx, fy, rxv, ryv); drawFrame(t, f, hcx, hcy, apex); return; }
+
+  ctx.fillStyle = '#04050a'; ctx.fillRect(0,0,W,H);
+  ctx.globalCompositeOperation = 'lighter';
+  for (const n of NEB){ const [ax,ay,az] = aber(n.x,n.y,n.z); const P = proj(ax,ay,az); if (!P) continue; const R = f*n.ang/P[2];
+    if (P[0] < -R || P[0] > W+R || P[1] < -R || P[1] > H+R) continue;
+    const g = ctx.createRadialGradient(P[0],P[1],0,P[0],P[1],R); g.addColorStop(0,`rgba(${n.col},0.13)`); g.addColorStop(0.5,`rgba(${n.col},0.05)`); g.addColorStop(1,`rgba(${n.col},0)`);
+    ctx.fillStyle = g; ctx.fillRect(P[0]-R,P[1]-R,R*2,R*2); }
+  ctx.globalCompositeOperation = 'source-over';
+  const bdx = -S.x, bdy = -S.y, bd = Math.hypot(bdx,bdy), bnx = bdx/bd, bny = bdy/bd;
+  const thE = Math.min(1.3, Math.sqrt(2*RS/bd));
+  const shA = Math.asin(Math.min(1, SHADOW/bd));
+  const streak = beta>0.3 ? (beta-0.3)**2*gamma*30 : 0;
+  ctx.lineCap = 'round';
+  const star = (nx,ny,nz,s,al0) => {
+    const [ax,ay,az,D] = aber(nx,ny,nz); const P = proj(ax,ay,az); if (!P) return;
+    const px = hcx + (P[0]-hcx)*(1+S.hw), py = hcy + (P[1]-hcy)*(1-S.hw); if (px<-20||px>W+20||py<-20||py>H+20) return;
+    let cR=235, cG=238, cB=250;
+    if (s.warm>0.8){ cR=255; cG=226; cB=196; } else if (s.warm<0.15){ cR=200; cG=220; cB=255; }
+    if (D>1){ const q = Math.min(1,(D-1)/2); cR += (120-cR)*q; cG += (190-cG)*q; cB += (255-cB)*q; }
+    else if (D<1){ const q = Math.min(1,(1-D)*1.6); cR += (255-cR)*q; cG += (90-cG)*q; cB += (60-cB)*q; }
+    // előre kék és fényesebb, hátrafelé a csillag fénye az infravörösbe csúszik és kihuny
+    const al = clamp(al0*Math.pow(D,1.2)*(D < 0.6 ? Math.exp(-(0.6-D)*8) : 1), 0, 1); if (al < 0.03) return;
+    const col = `rgba(${cR|0},${cG|0},${cB|0},${al.toFixed(3)})`;
+    if (streak>0.5){ let dx = px - (apex?apex[0]:hcx), dy = py - (apex?apex[1]:hcy); const m = Math.hypot(dx,dy)||1;
+      const L = streak*Math.min(2.5,D)*Math.min(1, m/150);
+      ctx.strokeStyle = col; ctx.lineWidth = s.s; ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(px + dx/m*L, py + dy/m*L); ctx.stroke(); }
+    else { ctx.fillStyle = col; ctx.fillRect(px,py,s.s,s.s); }
+  };
+  for (const s of CEL){
+    const cd = clamp(s.x*bnx + s.y*bny, -1, 1), del = Math.acos(cd);
+    let px = s.x - bnx*cd, py = s.y - bny*cd, pz = s.z; const pl = Math.hypot(px,py,pz);
+    if (pl < 1e-6) continue; px/=pl; py/=pl; pz/=pl;
+    const root = Math.sqrt(del*del + 4*thE*thE);
+    const d1 = (del + root)/2;
+    const mag = Math.min(2.5, d1/Math.max(del,1e-3));
+    if (d1 > shA) star(bnx*Math.cos(d1)+px*Math.sin(d1), bny*Math.cos(d1)+py*Math.sin(d1), pz*Math.sin(d1), s, s.b*(0.6+0.4*mag));
+    const d2 = (root - del)/2;
+    if (d2 > shA && d2 < thE*1.1) star(bnx*Math.cos(d2)-px*Math.sin(d2), bny*Math.cos(d2)-py*Math.sin(d2), -pz*Math.sin(d2), s, s.b*0.5);
+  }
+
+  // kozmikus háttérsugárzás: 2,7 K × D. Kb. γ ≈ 500 fölött előre látható vörös-narancs izzássá kékül
+  if (apex && Dmax > 150){ const T = 2.725*Dmax, q = clamp((Math.log10(Dmax) - 2.2)/1.0, 0, 1);
+    const col = T < 1800 ? '255,70,40' : (T < 3500 ? '255,150,80' : (T < 6000 ? '255,225,190' : '210,225,255'));
+    const R = Math.min(W,H)*(0.15 + 0.45/Math.sqrt(Dmax/150)); const g = ctx.createRadialGradient(apex[0],apex[1],0,apex[0],apex[1],R);
+    g.addColorStop(0,`rgba(${col},${(0.55*q).toFixed(3)})`); g.addColorStop(1,`rgba(${col},0)`);
+    ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(0,0,W,H); ctx.globalCompositeOperation = 'source-over'; }
+  // fekete lyuk élből látva: lencsézett túloldali korong, árnyék, első korongél
+  const [abx,aby,abz,Db] = aber(bnx,bny,0); const PB = proj(abx,aby,abz);
+  if (PB){
+    const [bx,by,ba] = PB; const sc = f/(ba*Math.max(0.4,Db));
+    const shPx = Math.max(1.5, Math.tan(Math.min(1.4,shA))*sc);
+    ctx.globalCompositeOperation = 'lighter';
+    const gl = ctx.createRadialGradient(bx,by,shPx*0.8,bx,by,shPx*4);
+    gl.addColorStop(0,'rgba(255,170,90,0.25)'); gl.addColorStop(1,'rgba(255,120,40,0)');
+    ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(bx,by,shPx*4,0,TAU); ctx.fill();
+    const lg = ctx.createLinearGradient(bx - shPx*4, 0, bx + shPx*4, 0);
+    lg.addColorStop(0,'rgba(215,235,255,0.95)'); lg.addColorStop(0.5,'rgba(255,215,160,0.75)'); lg.addColorStop(1,'rgba(255,120,60,0.35)');
+    ctx.strokeStyle = lg;
+    for (let k=0;k<7;k++){ const rr = shPx*(1.06 + k*0.16); ctx.lineWidth = Math.max(1, shPx*0.09*(1-k/8));
+      ctx.globalAlpha = 0.75*(1-k/8);
+      ctx.beginPath(); ctx.arc(bx,by,rr,Math.PI+0.18,TAU-0.18); ctx.stroke();
+      ctx.beginPath(); ctx.arc(bx,by,rr*0.92,0.3,Math.PI-0.3); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    drawJets(t, bx, by, shPx);
+    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(bx,by,shPx,0,TAU); ctx.fill();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = 'rgba(255,230,190,0.9)'; ctx.lineWidth = Math.max(1, shPx*0.03); ctx.beginPath(); ctx.arc(bx,by,shPx*1.01,0,TAU); ctx.stroke();
+    const outer = Math.tan(Math.min(1.4, Math.asin(Math.min(1, 10*RS/bd))))*sc;
+    const dg = ctx.createLinearGradient(bx - outer, 0, bx + outer, 0);
+    dg.addColorStop(0,'rgba(200,230,255,0)'); dg.addColorStop(0.3,'rgba(220,238,255,0.95)'); dg.addColorStop(0.5,'rgba(255,230,190,0.9)');
+    dg.addColorStop(0.7,'rgba(255,150,80,0.55)'); dg.addColorStop(1,'rgba(255,110,40,0)');
+    ctx.fillStyle = dg;
+    const th = Math.max(1.2, shPx*0.07);
+    ctx.beginPath(); ctx.ellipse(bx, by, outer, th, 0, 0, TAU); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(200,175,255,0.85)';
+    ctx.fillText(`FEKETE LYUK · ${fmt(bd/RS)} rs`, bx, by + Math.max(shPx*1.9, 22));
+  } else edgeMark(Math.atan2(bdy,bdx), 'LYUK', 'rgba(255,176,74,0.9)', hcy);
+
+  // jeladók
+  for (const b of S.beacons){ if (b.got) continue;
+    const dx = b.x - S.x, dy = b.y - S.y, d = Math.hypot(dx,dy); if (d > 200000) continue;
+    const [ax,ay,az,D] = aber(dx/d, dy/d, 0); const P = proj(ax,ay,az);
+    if (!P || P[0]<-10 || P[0]>W+10){ edgeMark(Math.atan2(dy,dx), `J${b.id}`, 'rgba(130,200,255,0.9)', hcy); continue; }
+    const [x,y] = P; const sz = clamp(f*60/d/Math.max(0.4,D), 4, 40);
+    const pulse = (t*0.0012 + b.id*0.3) % 1;
+    ctx.strokeStyle = `rgba(130,200,255,${(1-pulse)*0.8})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x,y,sz + pulse*24,0,TAU); ctx.stroke();
+    ctx.fillStyle = '#82c8ff'; ctx.beginPath(); ctx.moveTo(x,y-sz); ctx.lineTo(x+sz,y); ctx.lineTo(x,y+sz); ctx.lineTo(x-sz,y); ctx.fill();
+    ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign='center'; ctx.fillStyle = 'rgba(200,228,255,0.9)';
+    ctx.fillText(`J${b.id} · ${d<1000 ? Math.round(d) : fmt(d/1000)+'k'}`, x, y - sz - 12);
+  }
+  { const dx = S.psr.x - S.x, dy = S.psr.y - S.y, d = Math.hypot(dx,dy); const [ax,ay,az] = aber(dx/d, dy/d, 0); const P = proj(ax,ay,az);
+    if (P && P[0]>-10 && P[0]<W+10){ const [x,y] = P; const g = ctx.createRadialGradient(x,y,0,x,y,6+S.psrFlash*40);
+      g.addColorStop(0,'rgba(245,250,255,1)'); g.addColorStop(1,'rgba(180,210,255,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x,y,6+S.psrFlash*40,0,TAU); ctx.fill();
+      ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(210,225,255,0.85)'; ctx.fillText('PSR B1919+21', x, y - 16); }
+    else if (d < 200000) edgeMark(Math.atan2(dy,dx), 'PSR', 'rgba(220,230,255,0.8)', hcy + 30);
+    if (S.psrFlash>0){ ctx.fillStyle = `rgba(200,225,255,${(S.psrFlash*0.08).toFixed(3)})`; ctx.fillRect(0,0,W,H); } }
+  drawPlacesCockpit(t, f, hcx, hcy, fx, fy, rxv, ryv, aber, proj);
+  drawGWCockpit(f, hcx, hcy, fx, fy, rxv, ryv, aber, proj, edgeMark);
+  drawHomeCockpit(t, f, hcx, hcy, fx, fy, rxv, ryv, edgeMark);
+  for (const p of S.photons){ const n = p.pts.length; if (n<4) continue; ctx.strokeStyle = 'rgba(255,248,210,0.7)'; ctx.lineWidth = 1.4; ctx.beginPath(); let prev = null;
+    for (let i=0;i<n;i+=2){ const rx = p.pts[i]-S.x, ry = p.pts[i+1]-S.y, a = rx*fx + ry*fy;
+      const P = a>8 ? [hcx + f*(rx*rxv + ry*ryv)/a, hcy] : null; if (P && prev) { ctx.moveTo(prev[0],prev[1]+2); ctx.lineTo(P[0],P[1]+2); } prev = P; } ctx.stroke(); }
+  drawDust(f, hcx, hcy, fx, fy, rxv, ryv, 'rgba(210,220,240,');
+  if (mode==='play' && r0() < 5*RS){ const q = clamp((5*RS - r0())/(4*RS),0,1);
+    const vg = ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.3, W/2,H/2,Math.max(W,H)*0.75);
+    vg.addColorStop(0,'rgba(255,40,30,0)'); vg.addColorStop(1,`rgba(255,40,30,${(q*0.45).toFixed(3)})`); ctx.fillStyle = vg; ctx.fillRect(0,0,W,H); }
+  drawFrame(t, f, hcx, hcy, apex);
+
+  function edgeMark(worldAng, label, col, yy){
+    const rel = wrap(worldAng - S.ang); const right = rel > 0;
+    const x = right ? W - SA.r - 30 : SA.l + 30, y = yy + (label==='LYUK'?-26:0) + (parseInt(label.slice(1))||0)*14 - 40;
+    ctx.fillStyle = col; ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = right ? 'right' : 'left';
+    ctx.fillText(right ? `${label} ▶` : `◀ ${label}`, x, y); ctx.textAlign = 'center';
+  }
+}
+
+function drawDust(f, hcx, hcy, fx, fy, rxv, ryv, col){
+  // űrpor a hajó saját rendszerében: a mozgás irányú távolságok 1/γ-ra rövidülnek (Lorentz-kontrakció),
+  // ezért a por γ·v ütemben suhan el – ez nő korlát nélkül, miközben v sosem éri el c-t
+  const g = S.gamma || 1, sp = Math.hypot(S.vx,S.vy), vx = sp>1e-6 ? S.vx/sp : fx, vy = sp>1e-6 ? S.vy/sp : fy;
+  const contract = (rx, ry) => { const par = rx*vx + ry*vy, k = par*(1/g - 1); return [rx + vx*k, ry + vy*k]; };
+  const span = 1000*g;
+  for (const p of DUST){
+    const wx = p.x - S.x, wy = p.y - S.y;
+    let [rx, ry] = contract(wx, wy); let a = rx*fx + ry*fy;
+    if (!p.live || a < 15 || Math.hypot(wx,wy) > span*1.3){
+      const ahead = 150 + Math.random()*900, side = (Math.random()-.5)*1400;
+      // a hajó rendszerében egyenletes eloszlás, visszaszámolva a nyugvó rendszerbe
+      const lx = fx*ahead + rxv*side, ly = fy*ahead + ryv*side, par = lx*vx + ly*vy, k = par*(g - 1);
+      p.x = S.x + lx + vx*k; p.y = S.y + ly + vy*k; p.z = (Math.random()-.5)*500; p.live = true; continue; }
+    const b = rx*rxv + ry*ryv;
+    const x = hcx + f*b/a, y = hcy - f*p.z/a;
+    const kk = 0.035, [qx, qy] = contract(wx + S.vx*kk*g, wy + S.vy*kk*g);
+    const a2 = qx*fx + qy*fy, b2 = qx*rxv + qy*ryv;
+    const x2 = hcx + f*b2/Math.max(5,a2), y2 = hcy - f*p.z/Math.max(5,a2);
+    const al = clamp(250/a, 0.05, 0.6);
+    ctx.strokeStyle = col + al.toFixed(3) + ')'; ctx.lineWidth = clamp(300/a, 0.6, 2.5);
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x2,y2); ctx.stroke();
+  }
+}
+
+function drawCockpit4D(t, f, hcx, hcy, fx, fy, rxv, ryv){
+  const bg = ctx.createRadialGradient(hcx,hcy,0, hcx,hcy,Math.max(W,H)*0.8);
+  bg.addColorStop(0, S.anti ? '#0b2a26' : '#1a0f2e'); bg.addColorStop(1, S.anti ? '#020c0b' : '#07040e'); ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+  drawTess(t, hcx, hcy, Math.min(W,H)*0.45, 0.12);
+  // padló és mennyezet rácsa – a W-mozgásra elcsúsznak
+  const p3 = (x,y,zz) => { const rx = x - S.x, ry = y - S.y, a = rx*fx + ry*fy; if (a < 20) return null; return [hcx + f*(rx*rxv + ry*ryv)/a, hcy - f*zz/a]; };
+  const G = 320, R = 2600;
+  const grid = (off, zz, col) => { ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.beginPath();
+    for (let axis=0; axis<2; axis++){
+      const c0 = axis ? S.y : S.x, start = Math.floor((c0 - R - off)/G)*G + off;
+      for (let c = start; c < c0 + R; c += G){ let prev = null;
+        for (let u = -R; u <= R; u += 160){ const P = axis ? p3(S.x+u, c, zz) : p3(c, S.y+u, zz);
+          if (P && prev) { ctx.moveTo(prev[0],prev[1]); ctx.lineTo(P[0],P[1]); } prev = P; } } }
+    ctx.stroke(); };
+  grid(S.w*0.7, -180, 'rgba(180,140,255,0.22)');
+  grid(-S.w*0.7, 180, 'rgba(255,190,110,0.12)');
+  const objs = [];
+  for (const h of S.hypers){ const dw = S.w - h.w; if (Math.abs(dw) < h.R) objs.push({x:h.x,y:h.y,r:Math.sqrt(h.R*h.R-dw*dw),k:'h',hue:h.hue}); }
+  { const aw = Math.abs(S.w); if (aw < 520) objs.push({x:0,y:0,r:Math.sqrt(520*520-aw*aw),k:'s',core:aw<150?Math.sqrt(150*150-aw*aw):0}); }
+  drawZonesCockpit(t, f, hcx, hcy, fx, fy, rxv, ryv);
+  const wh = S.wh, dww = S.w - wh.w; objs.push({x:wh.x,y:wh.y,r:Math.abs(dww)<170?Math.sqrt(170*170-dww*dww):0,k:'w'});
+  for (const o of objs){ o.d = (o.x-S.x)*fx + (o.y-S.y)*fy; }
+  objs.sort((a,b) => b.d - a.d);
+  ctx.textAlign = 'center'; ctx.font = '500 10px "IBM Plex Mono", monospace';
+  for (const o of objs){
+    const P = p3(o.x,o.y,0);
+    if (!P || P[0] < -200 || P[0] > W+200){ if (o.k==='w'){ const rel = wrap(Math.atan2(o.y-S.y,o.x-S.x) - S.ang);
+        ctx.fillStyle = 'rgba(230,245,255,0.9)'; ctx.textAlign = rel>0?'right':'left';
+        ctx.fillText(rel>0 ? 'FEHÉR LYUK ▶' : '◀ FEHÉR LYUK', rel>0 ? W-SA.r-30 : SA.l+30, hcy); ctx.textAlign='center'; } continue; }
+    const [x,y] = P; const a = o.d; const rp = f*o.r/a;
+    if (o.k==='h'){ const col = o.hue<0.5 ? '180,140,255' : '120,220,255';
+      const g = ctx.createRadialGradient(x,y,rp*0.2,x,y,rp); g.addColorStop(0,`rgba(${col},0.05)`); g.addColorStop(0.85,`rgba(${col},0.2)`); g.addColorStop(1,`rgba(${col},0.6)`);
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x,y,rp,0,TAU); ctx.fill(); }
+    else if (o.k==='s'){ const g = ctx.createRadialGradient(x,y,0,x,y,rp); g.addColorStop(0,'rgba(255,60,50,0.45)'); g.addColorStop(1,'rgba(255,60,50,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x,y,rp,0,TAU); ctx.fill();
+      if (o.core){ const cp = f*o.core/a; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(x,y,cp,0,TAU); ctx.fill(); ctx.strokeStyle = 'rgba(255,90,82,0.9)'; ctx.lineWidth = 2; ctx.stroke(); }
+      ctx.fillStyle = 'rgba(255,130,120,0.8)'; ctx.fillText('SZINGULARITÁS', x, y - Math.max(16, rp*0.4)); }
+    else { if (o.r){ const g = ctx.createRadialGradient(x,y,0,x,y,rp*1.8); g.addColorStop(0,'rgba(255,255,255,0.95)'); g.addColorStop(0.5,'rgba(200,235,255,0.5)'); g.addColorStop(1,'rgba(200,235,255,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x,y,rp*1.8,0,TAU); ctx.fill(); }
+      const pulse = (t*0.0015)%1; ctx.strokeStyle = `rgba(230,245,255,${(0.7*(1-pulse)).toFixed(3)})`; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(x,y,8+pulse*22,0,TAU); ctx.stroke();
+      const need = Math.round(wh.w - S.w); ctx.fillStyle = 'rgba(230,245,255,0.95)';
+      ctx.fillText(o.r ? 'FEHÉR LYUK · repülj bele' : `FEHÉR LYUK · ${need>0?'+':''}${need} W`, x, y - 26); }
+  }
+  drawDust(f, hcx, hcy, fx, fy, rxv, ryv, 'rgba(200,170,255,');
+}
+
+function drawFrame(t, f, hcx, hcy, apex){
+  // célkereszt
+  ctx.strokeStyle = 'rgba(233,237,246,0.55)'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(hcx,hcy,10,0,TAU);
+  ctx.moveTo(hcx-26,hcy); ctx.lineTo(hcx-14,hcy); ctx.moveTo(hcx+14,hcy); ctx.lineTo(hcx+26,hcy); ctx.moveTo(hcx,hcy+14); ctx.lineTo(hcx,hcy+22); ctx.stroke();
+  // haladási irány jelölő
+  if (apex && apex[0]>0 && apex[0]<W && apex[1]>0 && apex[1]<H){ const [x,y] = apex;
+    ctx.strokeStyle = 'rgba(255,176,74,0.9)'; ctx.beginPath(); ctx.arc(x,y,6,0,TAU); ctx.moveTo(x-16,y); ctx.lineTo(x-6,y); ctx.moveTo(x+6,y); ctx.lineTo(x+16,y); ctx.moveTo(x,y-6); ctx.lineTo(x,y-12); ctx.stroke(); }
+  // iránytű-szalag
+  const deg = ((S.ang*180/Math.PI)%360+360)%360;
+  ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center';
+  const ty = hcy + 44; ctx.fillStyle = 'rgba(233,237,246,0.5)';
+  for (let k=-40;k<=40;k+=10){ const dv = Math.round(deg/10)*10 + k, off = (dv - deg)*3; if (Math.abs(off)>130) continue;
+    ctx.fillRect(hcx + off, ty - 4, 1, dv%30===0?7:4); if (dv%30===0) ctx.fillText(String(((dv%360)+360)%360).padStart(3,'0'), hcx + off, ty + 14); }
+  // pilótafülke kerete
+  ctx.fillStyle = 'rgba(10,12,20,0.94)';
+  ctx.beginPath(); ctx.moveTo(0,H); ctx.lineTo(0,H*0.8); ctx.quadraticCurveTo(W/2,H*0.7,W,H*0.8); ctx.lineTo(W,H); ctx.fill();
+  ctx.strokeStyle = S.inside ? 'rgba(180,140,255,0.45)' : 'rgba(255,176,74,0.35)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(0,H*0.8); ctx.quadraticCurveTo(W/2,H*0.7,W,H*0.8); ctx.stroke();
+  ctx.fillStyle = 'rgba(10,12,20,0.9)';
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(W*0.06,0); ctx.lineTo(0,H*0.5); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(W,0); ctx.lineTo(W*0.94,0); ctx.lineTo(W,H*0.5); ctx.fill();
+  if (S.thrust>0){ const q = S.thrust>1000 ? 1 : 0.4; ctx.fillStyle = S.inside ? `rgba(180,140,255,${0.12*q})` : (S.thrust>1000 ? `rgba(130,200,255,0.14)` : 'rgba(255,176,74,0.06)'); ctx.fillRect(0,H*0.7,W,H*0.3); }
+}
+
+function drawCommon(t){
+  const {z} = V;
+  if (S.trail.length>4){ ctx.lineWidth = 1.5; const tc = S.inside ? '190,150,255' : '255,176,74';
+    for (let i=2;i<S.trail.length;i+=2){ const [x0,y0] = toS(S.trail[i-2],S.trail[i-1]), [x1,y1] = toS(S.trail[i],S.trail[i+1]);
+      ctx.strokeStyle = `rgba(${tc},${(i/S.trail.length*0.45).toFixed(3)})`; ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke(); } }
+  ctx.globalCompositeOperation = 'lighter';
+  for (const p of S.parts){ const [x,y] = toS(p.x,p.y); ctx.fillStyle = `rgba(${p.c},${(p.life*0.9).toFixed(3)})`; ctx.fillRect(x-1.2,y-1.2,2.4,2.4); }
+  ctx.globalCompositeOperation = 'source-over';
+
+  if (!S.dead){ const [x,y] = toS(S.x,S.y);
+    const tid = S.inside ? 0 : clamp((Math.log10(Math.max(1,tidalG(r0()/RS))) - 1)/3, 0, 1);
+    const rad = Math.atan2(S.y, S.x) + V.rot;
+    ctx.save(); ctx.translate(x,y); ctx.rotate(rad); ctx.scale(1+tid*1.6, 1-tid*0.5); ctx.rotate(S.ang + V.rot - rad);
+    if (S.thrust>0){ const L = S.thrust>1000 ? 26+Math.random()*10 : 10+Math.random()*6;
+      ctx.fillStyle = S.inside ? 'rgba(190,150,255,0.9)' : (S.thrust>1000 ? 'rgba(150,210,255,0.9)' : 'rgba(255,176,74,0.9)');
+      ctx.beginPath(); ctx.moveTo(-8,-4); ctx.lineTo(-8-L,0); ctx.lineTo(-8,4); ctx.fill(); }
+    ctx.fillStyle = '#e9edf6'; ctx.strokeStyle = '#04050a'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(13,0); ctx.lineTo(-8,-8); ctx.lineTo(-4,0); ctx.lineTo(-8,8); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.restore(); }
+
+}
+function drawControls(t){
+  // fix joystick
+  if (mode==='play'){
+    const [jx,jy] = joyCenter();
+    ctx.fillStyle = 'rgba(8,10,18,0.55)'; ctx.beginPath(); ctx.arc(jx,jy,JR,0,TAU); ctx.fill();
+    ctx.strokeStyle = joy.on ? 'rgba(233,237,246,0.45)' : 'rgba(233,237,246,0.2)'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = 'rgba(233,237,246,0.35)'; ctx.font = '500 9px "IBM Plex Mono", monospace'; ctx.textAlign = 'center';
+    ctx.fillText(view==='cockpit' ? '◀ KORMÁNY ▶' : 'IRÁNY', jx, jy - JR - 8);
+    // hajó aktuális iránya a kormányon
+    if (view!=='cockpit') ctx.strokeStyle = 'rgba(255,176,74,0.7)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(jx, jy); ctx.lineTo(jx + Math.cos(S.ang)*(JR-6), jy + Math.sin(S.ang)*(JR-6)); if (view!=='cockpit') ctx.stroke();
+    ctx.fillStyle = joy.on ? 'rgba(233,237,246,0.7)' : 'rgba(233,237,246,0.4)';
+    ctx.beginPath(); ctx.arc(jx + joy.x, jy + joy.y, 22, 0, TAU); ctx.fill();
+    const r = slRect();
+    ctx.fillStyle = 'rgba(8,10,18,0.55)'; ctx.strokeStyle = thr.on ? 'rgba(233,237,246,0.45)' : 'rgba(233,237,246,0.2)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(r.x, r.y, SLW, SLH, 14) : ctx.rect(r.x, r.y, SLW, SLH); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = 'rgba(233,237,246,0.15)'; ctx.beginPath(); ctx.moveTo(r.x+8, r.cy); ctx.lineTo(r.x+SLW-8, r.cy); ctx.stroke();
+    if (thr.v>0){ ctx.fillStyle = 'rgba(255,176,74,0.35)'; ctx.fillRect(r.x+4, r.cy - thr.v*(SLH/2-4), SLW-8, thr.v*(SLH/2-4)); }
+    else if (thr.v<0){ ctx.fillStyle = 'rgba(130,200,255,0.3)'; ctx.fillRect(r.x+4, r.cy, SLW-8, -thr.v*(SLH/2-4)); }
+    ctx.fillStyle = 'rgba(233,237,246,0.45)'; ctx.fillText('GÁZ', r.cx, r.y + 14); ctx.fillText('FÉK', r.cx, r.y + SLH - 7);
+    ctx.fillText('SEBESSÉG', r.cx, r.y - 8);
+    ctx.fillStyle = thr.on ? 'rgba(233,237,246,0.8)' : 'rgba(233,237,246,0.45)';
+    ctx.fillRect(r.x + 6, r.cy - thr.v*(SLH/2-12) - 5, SLW - 12, 10);
+  }
+  drawScope();
+  if (S.ap && mode==='play'){ const d = Math.hypot(S.ap.x-S.x, S.ap.y-S.y) - S.ap.stop; ctx.font = '600 11px "IBM Plex Mono", monospace'; ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(200,175,255,0.95)'; ctx.fillText(`AUTOPILÓTA → ${S.ap.n} · ${fmtLy(Math.max(0,d))}`, W/2, H - SA.b - 22 - 132 - 12 - 44 - 10); }
+  if (S.gwFlash>0 && !S.inside){ ctx.fillStyle = `rgba(220,210,255,${(S.gwFlash*0.12).toFixed(3)})`; ctx.fillRect(0,0,W,H); }
+  if (S.flash>0){ ctx.fillStyle = `rgba(235,225,255,${(S.flash*0.85).toFixed(3)})`; ctx.fillRect(0,0,W,H); }
+}
+
+function drawRadar(){
+  const R = 124, half = R/2; rctx.setTransform(2,0,0,2,0,0); rctx.clearRect(0,0,R,R);
+  const range = S.inside ? 4200 : 18000, sc = (half-8)/range, cr = V.cr, sr = V.sr;
+  rctx.strokeStyle = S.inside ? 'rgba(180,140,255,0.18)' : 'rgba(233,237,246,0.1)'; rctx.lineWidth = 1;
+  for (const k of [0.33,0.66,1]){ rctx.beginPath(); rctx.arc(half,half,(half-8)*k,0,TAU); rctx.stroke(); }
+  const pt = (x,y) => { const ax = (x-S.x)*sc, ay = (y-S.y)*sc; let dx = ax*cr - ay*sr, dy = ax*sr + ay*cr;
+    const m = Math.hypot(dx,dy), lim = half-8; if (m>lim){ dx*=lim/m; dy*=lim/m; } return [half+dx, half+dy, m>lim]; };
+  if (S.inside){
+    const [sx,sy] = pt(0,0); rctx.fillStyle = '#ff5a52'; rctx.beginPath(); rctx.arc(sx,sy,3.5,0,TAU); rctx.fill();
+    const [wx,wy] = pt(S.wh.x,S.wh.y); const near = Math.abs(S.w - S.wh.w) < 170;
+    rctx.fillStyle = near ? '#ffffff' : 'rgba(230,245,255,0.55)'; rctx.beginPath(); rctx.arc(wx,wy,near?4:3,0,TAU); rctx.fill();
+    if (S.zn) for (const zz of zoneList()){ const [zx,zy] = pt(zz.o.x,zz.o.y); const inS = Math.abs(S.w-zz.o.w) < zz.rw; rctx.fillStyle = `rgba(${zz.col},${inS?1:0.45})`; rctx.fillRect(zx-2,zy-2,4,4); }
+  } else {
+    const [bx,by] = pt(0,0);
+    rctx.fillStyle = '#ffb04a'; rctx.beginPath(); rctx.arc(bx,by,4,0,TAU); rctx.fill();
+    rctx.fillStyle = '#000'; rctx.beginPath(); rctx.arc(bx,by,2,0,TAU); rctx.fill();
+    for (const b of S.beacons){ if (b.got) continue; const [x,y,edge] = pt(b.x,b.y);
+      rctx.fillStyle = edge ? 'rgba(130,200,255,0.5)' : '#82c8ff'; rctx.fillRect(x-2,y-2,4,4); }
+    { const [gx,gy] = pt(S.gw.x,S.gw.y); rctx.fillStyle = 'rgba(255,170,120,0.9)'; rctx.beginPath(); rctx.arc(gx,gy,3,0,TAU); rctx.fill(); }
+    for (const p of PLACES){ const [qx,qy] = pt(p.x,p.y); rctx.fillStyle = S.visited[p.id] ? 'rgba(200,210,230,0.35)' : 'rgba(255,225,170,0.9)'; rctx.save(); rctx.translate(qx,qy); rctx.rotate(Math.PI/4); rctx.fillRect(-2.2,-2.2,4.4,4.4); rctx.restore(); }
+    if (S.mission==='twin'){ const [hx,hy] = pt(S.home.x,S.home.y); rctx.strokeStyle = '#78ffaa'; rctx.lineWidth = 1.5; rctx.beginPath(); rctx.arc(hx,hy,3.5,0,TAU); rctx.stroke(); }
+    { const [px,py] = pt(S.psr.x,S.psr.y); rctx.fillStyle = `rgba(240,245,255,${(0.5+S.psrFlash*0.5).toFixed(2)})`; rctx.beginPath(); rctx.arc(px,py,2.5+S.psrFlash*2,0,TAU); rctx.fill(); }
+  }
+  rctx.save(); rctx.translate(half,half); rctx.rotate(S.ang + V.rot); rctx.fillStyle = '#e9edf6'; rctx.beginPath(); rctx.moveTo(6,0); rctx.lineTo(-4,-4); rctx.lineTo(-4,4); rctx.fill(); rctx.restore();
+}
+
+const hB=$('hB'),hG=$('hG'),hR=$('hR'),hT=$('hT'),hTau=$('hTau'),hD=$('hD'),hDist=$('hDist'),hBeac=$('hBeac'),hE=$('hE'),hBar=$('hBar');
+const fmt = (n,d=1) => n.toFixed(d).replace('.',',');
+const tfmt = n => { if (Math.abs(n) <= 730) return fmt(n) + ' nap'; const y = n/365.25; if (Math.abs(y) < 1e4) return fmt(y) + ' év'; if (Math.abs(y) < 1e6) return fmt(y/1e3) + ' ezer év'; if (Math.abs(y) < 1e9) return fmt(y/1e6,2) + ' millió év'; return fmt(y/1e9,2) + ' milliárd év'; };
+function hud(){
+  if (S.alc){ hB.textContent = sci(S.alc.v) + ' c'; hG.textContent = '1 (szabadesés)'; } else { hB.textContent = fmtBeta(S.beta); hG.textContent = S.gamma < 100 ? fmt(S.gamma, 3) : sci(S.gamma); }
+  $('hU').textContent = fmt(S.gamma*S.beta*(S.cl||1), 2) + ' c'; $('hCV').textContent = cMinusV(S.beta);
+  hR.textContent = S.inside ? (S.loop ? '−1,5× ↺' : (S.cl<1 ? 'c = 0,35' : (S.anti ? 'antivilág' : '≈ 0×'))) : fmt(S.rate, 2) + '×'; hR.className = 'v' + (S.inside ? ' vio' : (S.rate<0.5?' warn':''));
+  hT.textContent = tfmt(S.tE); hTau.textContent = tfmt(S.tau); hD.textContent = tfmt(S.tE - S.tau);
+  if (S.inside){ const near = Math.abs(S.w - S.wh.w) < 170;
+    hDist.textContent = `${Math.round(S.w)} → ${Math.round(S.wh.w)}`; hDist.className = 'v ' + (near ? '' : 'vio'); }
+  else { const rr = r0()/RS; hDist.textContent = rr > 20000 ? fmtLy(r0()) : fmt(rr) + ' rs'; hDist.className = 'v' + (rr<3?' warn':''); }
+  if (S.mission==='twin'){ $('kBeac').textContent = 'Ikerarány'; const rt = twinRatio(); hBeac.textContent = (isFinite(rt) ? fmt(rt,2) : '∞') + '× · cél 4×'; hBeac.className = 'v' + (S.twinReady ? ' blue' : ''); }
+  else { $('kBeac').textContent = 'Jeladók'; hBeac.textContent = `${S.collected} / ${S.beacons.length}`; hBeac.className = 'v'; }
+  $('bAlc').textContent = S.alc ? 'LEÁLLÍT' : 'ALCU\u00ADBIERRE';
+  bFireEl.textContent = (!S.inside && r0() < ERGO) ? `LEDOBÁS · ${S.cargo}` : 'FOTON'; $('hTh').textContent = `${thCount()} / ${TH_N}`; $('hPl').textContent = `${Object.keys(S.visited).length} / ${PLACES.length}`;
+  hE.textContent = Math.round(S.energy) + '%'; hE.className = 'v' + (S.energy>100 ? ' vio' : ''); hBar.style.transform = `scaleX(${Math.min(1,S.energy/100)})`;
+  hBar.style.background = S.energy>100 ? 'linear-gradient(90deg,#b48cff,#f0e2ff)' : '';
+}
+
+// ---- Tudomány: valódi fizikai mennyiségek a választott lyuktömeghez ----
+const MASSES = [
+  {n:'Sgr A*', d:'4,3 millió naptömeg – a Tejút központi lyuka', m:4.3e6},
+  {n:'10 M☉', d:'csillagtömegű lyuk, egy szupernóva maradványa', m:10},
+  {n:'M87*', d:'6,5 milliárd naptömeg – az első lefotózott lyuk', m:6.5e9}];
+let massIdx = 0;
+const Gn = 6.674e-11, MSUN = 1.989e30, CL = 2.998e8, G0 = 9.81, LSHIP = 20, HULL_G = 1e4;
+const Mkg = () => MASSES[massIdx].m*MSUN;
+const rsM = () => 2*Gn*Mkg()/(CL*CL);
+const tidalG = x => 2*Gn*Mkg()*LSHIP/Math.pow(x*rsM(),3)/G0;           // radiális árapály-gyorsulás a hajó két vége között
+const hoverG = x => x<=1 ? Infinity : Gn*Mkg()/Math.pow(x*rsM(),2)/Math.sqrt(1-1/x)/G0; // helyben lebegéshez kellő saját gyorsulás
+const hawkT = () => 6.17e-8/MASSES[massIdx].m;                          // Hawking-hőmérséklet, K
+const evapY = () => 2.1e67*Math.pow(MASSES[massIdx].m,3);               // párolgási idő, év
+const SUPD = {'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+function sci(n){ if (!isFinite(n)) return '∞'; if (n===0) return '0'; const a = Math.abs(n);
+  if (a>=0.01 && a<1e5) return fmt(n, a<10?2:(a<100?1:0));
+  const e = Math.floor(Math.log10(a)), m = n/Math.pow(10,e);
+  return fmt(m,1) + '·10' + String(e).split('').map(c => SUPD[c]).join(''); }
+
+// pulzár: PSR B1919+21, az első felfedezett pulzár, periódusa 1,3373 s
+const PSR_P = 1.3373;
+function psrDoppler(){
+  const dx = S.psr.x - S.x, dy = S.psr.y - S.y, d = Math.hypot(dx,dy) || 1;
+  const sp = Math.hypot(S.vx,S.vy) || 1, cosT = (dx*S.vx + dy*S.vy)/(d*sp);
+  const kin = S.gamma*(1 + S.beta*cosT);                       // relativisztikus Doppler (mozgó megfigyelő)
+  const grav = 1/Math.sqrt(Math.max(1e-6, 1 - RS/Math.hypot(S.x,S.y)));  // gravitációs kékeltolódás a lyuk potenciáljában
+  return kin*grav;
+}
+
+// hang
+let actx = null, soundOn = true;
+let chirp = null, engine = null;
+const oneMinusBeta = () => 1/(S.gamma*S.gamma*(1 + S.beta));   // pontosabb, mint 1 − β
+function fmtBeta(b){ if (b < 0.99) return fmt(b, 3); const om = oneMinusBeta(), k = Math.floor(-Math.log10(om)), nx = clamp(Math.floor((1 - om*Math.pow(10,k))*100), 0, 99);
+  const tail = String(nx).padStart(2,'0'); return k <= 11 ? '0,' + '9'.repeat(k) + tail : `0,99…9${tail} (${k} kilences)`; }
+function cMinusV(b){ const kms = (b < 0.99 ? 1-b : oneMinusBeta())*299792.458; if (kms >= 1000) return Math.round(kms).toLocaleString('hu-HU') + ' km/s'; if (kms >= 1) return fmt(kms,1) + ' km/s'; const ms = kms*1000; if (ms >= 1) return fmt(ms,1) + ' m/s'; return sci(ms) + ' m/s'; }
+function ensureAudio(){ try{ if (!actx) actx = new (window.AudioContext||window.webkitAudioContext)(); if (actx.state==='suspended') actx.resume();
+  if (!chirp){ const o = actx.createOscillator(), g = actx.createGain(); o.type = 'sine'; g.gain.value = 0; o.connect(g); g.connect(actx.destination); o.start(); chirp = {o, g}; }
+  if (!engine){ const o = actx.createOscillator(), f = actx.createBiquadFilter(), g = actx.createGain(); o.type = 'sawtooth'; f.type = 'lowpass'; f.frequency.value = 300; g.gain.value = 0;
+    o.connect(f); f.connect(g); g.connect(actx.destination); o.start(); engine = {o, f, g}; } }catch(_){ } }
+function click(vol){ if (!soundOn || !actx) return; try{ const t = actx.currentTime, o = actx.createOscillator(), g = actx.createGain();
+  o.type = 'square'; o.frequency.setValueAtTime(1700,t); o.frequency.exponentialRampToValueAtTime(260,t+0.05);
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.003); g.gain.exponentialRampToValueAtTime(0.0001,t+0.09);
+  o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+0.12); }catch(_){} }
+
+// foton: nullgeodetikus a Schwarzschild-térben. u'' + u = (3/2) rs u² pontosan teljesül,
+// ha r̈ = −(3/2)·rs·h²·r⃗ / r⁵ (h = |r × v| megmarad).
+function firePhoton(){
+  if (mode!=='play') return;
+  if (S.inside){ toast('A 4D térben nincs érvényes fénypálya – ez a rész játékelem', 'vio'); return; }
+  const ex = Math.cos(S.ang), ey = Math.sin(S.ang);
+  let dx = ex, dy = ey; const b = S.beta;
+  if (b > 0.001){ // aberráció: a hajóban előre kilőtt fény a nyugvó rendszerben még előrébb hajlik
+    const sp = Math.hypot(S.vx,S.vy), ux = S.vx/sp, uy = S.vy/sp, c = ex*ux + ey*uy, c2 = (c + b)/(1 + b*c);
+    let px = ex - ux*c, py = ey - uy*c; const pl = Math.hypot(px,py); if (pl>1e-6){ px/=pl; py/=pl; }
+    const s2 = Math.sqrt(Math.max(0,1-c2*c2)); dx = ux*c2 + px*s2; dy = uy*c2 + py*s2; }
+  const x = S.x + ex*14, y = S.y + ey*14, r = Math.hypot(x,y), u = 1/r;
+  const vr = (x*dx + y*dy)/r, vt = (x*dy - y*dx)/r;
+  const dudphi = -vr/(r*Math.max(1e-9, Math.abs(vt)));
+  const inv = dudphi*dudphi + u*u - RS*u*u*u;
+  const bimp = Math.abs(vt)<1e-9 ? 0 : 1/Math.sqrt(Math.max(1e-30, inv));
+  const v0 = C*2.2;
+  const ph = {x, y, vx:dx*v0, vy:dy*v0, h:(x*dy - y*dx)*v0, d0x:dx, d0y:dy, pts:[x,y], age:0, alive:true, b:bimp/RS};
+  S.photons.push(ph); if (S.photons.length>4) S.photons.shift();
+  S.fired++;
+  const crit = 3*Math.sqrt(3)/2;
+  toast(`Foton · ütközési paraméter b = ${fmt(ph.b,2)} rs ${ph.b<crit ? '< 2,60 rs → befogás várható' : '> 2,60 rs → elhajlik'}`, '', 2.6);
+}
+function stepPhotons(dt){
+  for (const p of S.photons){ if (!p.alive) continue;
+    const n = 40, h2 = p.h*p.h, sd = dt/n;
+    for (let i=0;i<n;i++){ const r = Math.hypot(p.x,p.y); if (r < RS){ p.alive = false; p.fate = 'in'; break; }
+      const f = -1.5*RS*h2/Math.pow(r,5); p.vx += f*p.x*sd; p.vy += f*p.y*sd; p.x += p.vx*sd; p.y += p.vy*sd; }
+    p.age += dt; p.pts.push(p.x, p.y); if (p.pts.length > 1600) p.pts.splice(0,2);
+    if (p.alive && (Math.hypot(p.x,p.y) > 40000 || p.age > 18)){ p.alive = false; p.fate = 'out'; }
+    if (!p.alive){
+      if (p.fate==='in'){ S.captured++; toast('A fotont elnyelte a lyuk', 'danger', 2); }
+      else { const sp = Math.hypot(p.vx,p.vy); const ang = Math.acos(clamp((p.vx*p.d0x + p.vy*p.d0y)/sp, -1, 1))*180/Math.PI;
+        toast(`A foton kiszökött · eltérülés ${fmt(ang,1)}°`, '', 2.4); }
+      p.dead = 3; }
+  }
+  for (const p of S.photons) if (p.dead) p.dead -= dt;
+  S.photons = S.photons.filter(p => !(p.dead !== undefined && p.dead <= 0));
+}
+function drawPhotonsTop(){
+  for (const p of S.photons){ const n = p.pts.length; if (n<4) continue;
+    const fade = p.dead!==undefined ? clamp(p.dead/3,0,1) : 1;
+    ctx.lineWidth = 1.6; ctx.strokeStyle = `rgba(255,248,210,${(0.75*fade).toFixed(3)})`; ctx.beginPath();
+    let [x0,y0] = toS(p.pts[0],p.pts[1]); ctx.moveTo(x0,y0);
+    for (let i=2;i<n;i+=2){ const [x,y] = toS(p.pts[i],p.pts[i+1]); ctx.lineTo(x,y); } ctx.stroke();
+    if (p.alive){ const [x,y] = toS(p.x,p.y); ctx.fillStyle = '#fffbe8'; ctx.beginPath(); ctx.arc(x,y,3,0,TAU); ctx.fill(); } }
+}
+
+// Hawking-párok (szemléltetés, erősen felnagyítva)
+function stepPairs(dt){
+  if (S.inside) { S.pairs.length = 0; return; }
+  if (Math.random() < dt*14){ const a = Math.random()*TAU, r = RS*(1.03 + Math.random()*0.12);
+    S.pairs.push({a, r, s:+1, life:2.2}, {a:a+0.01, r, s:-1, life:2.2}); }
+  for (const p of S.pairs){ p.r += p.s*120*dt; p.life -= dt; if (p.s<0 && p.r < RS) p.life = 0; }
+  S.pairs = S.pairs.filter(p => p.life>0);
+}
+function drawPairs(){
+  if (V.z < 0.12) return;
+  for (const p of S.pairs){ const [x,y] = toS(Math.cos(p.a)*p.r, Math.sin(p.a)*p.r);
+    ctx.fillStyle = p.s>0 ? `rgba(240,235,255,${(p.life/2.2*0.9).toFixed(3)})` : 'rgba(180,140,255,0.8)';
+    ctx.fillRect(x-1.2,y-1.2,2.4,2.4); }
+}
+
+// pulzár (térkép)
+function drawPulsarTop(t){
+  const [x,y] = toS(S.psr.x, S.psr.y);
+  const toShip = Math.atan2(S.y - S.psr.y, S.x - S.psr.x), ba = toShip + (S.psrPhase % TAU);
+  const L = 7000*V.z;
+  for (const k of [0, Math.PI]){ const a = ba + k + V.rot;
+    const g = ctx.createLinearGradient(x, y, x + Math.cos(a)*L, y + Math.sin(a)*L);
+    g.addColorStop(0,'rgba(190,220,255,0.35)'); g.addColorStop(1,'rgba(190,220,255,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(x,y);
+    ctx.lineTo(x + Math.cos(a-0.05)*L, y + Math.sin(a-0.05)*L); ctx.lineTo(x + Math.cos(a+0.05)*L, y + Math.sin(a+0.05)*L); ctx.fill(); }
+  ctx.fillStyle = '#f2f6ff'; ctx.beginPath(); ctx.arc(x,y,3.5 + S.psrFlash*4,0,TAU); ctx.fill();
+  if (S.psrFlash>0){ const [sx,sy] = toS(S.x,S.y); ctx.strokeStyle = `rgba(200,225,255,${(S.psrFlash*0.5).toFixed(3)})`; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(sx,sy); ctx.stroke(); }
+  ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(210,225,255,0.85)';
+  ctx.fillText('PSR B1919+21 · pulzár', x, y - 14);
+}
+
+// tudomány-panel
+const sciEl = document.getElementById('sci'), sciRows = document.getElementById('sciRows'), massBtns = document.getElementById('massBtns');
+function renderMass(){ massBtns.innerHTML = MASSES.map((m,i) => `<button type="button" class="mb${i===massIdx?' on':''}" data-i="${i}"><b>${m.n}</b><span>${m.d}</span></button>`).join('');
+  massBtns.querySelectorAll('button').forEach(b => b.onclick = () => { massIdx = +b.dataset.i; renderMass(); updateSci();
+    const lim = Math.cbrt(2*Gn*Mkg()*LSHIP/(HULL_G*G0))/rsM();
+    toast(lim > 1 ? `${MASSES[massIdx].n}: az árapály kb. ${fmt(lim,0)} rs-nél széttépi a hajót` : `${MASSES[massIdx].n}: a horizonton is elviselhető az árapály`, lim>1?'danger':'', 3); }); }
+function row(k, v, cls=''){ return `<span class="k">${k}</span><span class="v ${cls}">${v}</span>`; }
+function updateSci(){
+  if (sciEl.hidden) return;
+  const thRows = Object.entries(THEORIES).map(([k,th]) => row(th.t, S.theories[k] ? 'felfedezve' : '–', S.theories[k] ? 'blue' : '')).join('');
+  if (S.inside){ sciRows.innerHTML = row('Hely', '4D tér (játékelem)', 'vio') + row('Gravitáció', S.anti ? 'taszít (antivilág)' : 'vonz', S.anti?'vio':'') + row('Helyi fénysebesség', S.cl<1 ? '0,35 c₀' : 'c₀') + thRows; return; }
+  const x = Math.hypot(S.x,S.y)/RS, tg = tidalG(x), hg = hoverG(x), z = 1/Math.sqrt(Math.max(1e-9,1-1/x));
+  const D = psrDoppler();
+  sciRows.innerHTML =
+    row('Horizont sugara', sci(rsM()/1000) + ' km') +
+    row('Felkeresett helyek', `${Object.keys(S.visited).length} / ${PLACES.length}`) +
+    row('Rapiditás (φ = artanh v/c)', fmt(Math.atanh(Math.min(0.999999999,S.beta)),3)) +
+    row('Távolság-rövidülés előre', '1/' + fmt(S.gamma,2)) +
+    row('Távolságod', `${fmt(x,2)} rs = ${sci(x*rsM()/1000)} km`) +
+    row('Árapály a 20 m-es hajón', sci(tg) + ' g', tg>HULL_G*0.1 ? 'warn' : '') +
+    row('Lebegéshez kellő gyorsulás', sci(hg) + ' g') +
+    row('Bejövő fény kékeltolódása', '×' + fmt(z,3)) +
+    row('Hawking-hőmérséklet', sci(hawkT()) + ' K') +
+    row('Helyi (Tolman) hőmérséklet', sci(hawkT()*z) + ' K') +
+    row('Párolgási idő', sci(evapY()) + ' év') +
+    row('Pulzár saját periódusa', fmt(PSR_P,4) + ' s') +
+    row('Pulzár mért periódusa', fmt(PSR_P/D,4) + ' s', D>1.05?'blue':(D<0.95?'warn':'')) +
+    row('Fotonok', `${S.fired} kilőve · ${S.captured} befogva`) +
+    row('Ergoszféra', `${fmt(ERGO/RS,1)} rs (szemléltetés)`) + row('Rakomány', `${S.cargo} db · Penrose: ${S.penrose}×`) +
+    row('Kettős lyuk', S.gw.state==='in' ? `összeolvadásig ${fmt(S.gw.T - S.gw.t,0)} s` : (S.gw.state==='ring' ? 'lecsengés (ringdown)' : 'egyetlen maradványlyuk')) +
+    row('Mért GW-frekvencia (lelassítva)', fmt(S.gwOm/Math.PI,2) + ' Hz') + thRows;
+}
+document.getElementById('bSci').addEventListener('click', () => { sciEl.hidden = !sciEl.hidden; if (!sciEl.hidden){ renderMass(); updateSci(); } });
+document.getElementById('sciX').addEventListener('click', () => { sciEl.hidden = true; });
+const bFireEl = document.getElementById('bFire');
+bFireEl.addEventListener('click', () => { if (!S.inside && r0() < ERGO) dropCargo(); else firePhoton(); });
+document.getElementById('bSnd').addEventListener('click', e => { soundOn = !soundOn; ensureAudio(); e.currentTarget.textContent = 'Pulzár-hang: ' + (soundOn?'be':'ki'); });
+addEventListener('keydown', e => { if (mode!=='play') return; if (e.code==='KeyF') firePhoton(); if (e.code==='KeyG') dropCargo(); if (e.code==='KeyT') document.getElementById('bSci').click(); });
+
+// ---- Elméletek a lyuk belsejében ----
+const THEORIES = {
+  worm:{t:'ER = EPR féregjárat', tag:'Sejtés · Maldacena és Susskind, 2013',
+    p:'A sejtés szerint két összefonódott fekete lyukat egy féregjárat köt össze: a kvantum-összefonódás és a téridő geometriája ugyanannak a dolognak két arca. A klasszikus Einstein–Rosen-híd nem járható, mert a torka gyorsabban csípődik el, mint ahogy a fény átérne rajta. Ezért itt csak a nyitott pillanatban jutsz át.'},
+  kerr:{t:'Kerr-gyűrű és antivilág', tag:'Matematikai megoldás · Kerr, 1963 · valószínűleg instabil',
+    p:'Forgó lyukban a szingularitás nem pont, hanem gyűrű. A Kerr-megoldásban a gyűrű közepén át egy olyan tartományba lehet jutni, ahol a gravitáció taszít, és zárt időszerű görbék, azaz időhurkok is vannak. A gyűrű közelében ezért itt visszafelé jár a hajóóra. Egy valódi forgó lyuk belső horizontja a számítások szerint instabil (tömegfelfúvódás), így ez a tartomány a természetben aligha létezik.'},
+  baby:{t:'Bébi-univerzum', tag:'Spekulatív · Lee Smolin, 1992',
+    p:'Smolin ötlete a kozmológiai természetes kiválasztódás: minden fekete lyuk egy új univerzum csírája, amelyben a természeti állandók kissé eltérnek a szülőétől. Ebben a buborékban a fénysebesség a kinti 35%-a, ezért itt sokkal hamarabb éred el a relativisztikus tartományt.'},
+  holo:{t:'Holografikus elv', tag:'Elméleti alapelv · ’t Hooft, Susskind · Bekenstein–Hawking-entrópia',
+    p:() => `Egy fekete lyukba zárható információ mennyiségét a horizont felülete szabja meg, nem a térfogata (S = A/4, Planck-egységekben). A választott lyuknál ez kb. ${sci(1.05e77*Math.pow(MASSES[massIdx].m,2)/Math.LN2)} bit. A húrelméletben (AdS/CFT) ez pontosan megvalósul. A játékban ezért a tér széle maga a felület, amelyre a belső tartalom fel van írva, és ezért hajlik vissza.`},
+  planck:{t:'Planck-tartomány', tag:'Elméletileg várt · kísérletileg elérhetetlen',
+    p:'A szingularitás közelében a görbület eléri a Planck-skálát (kb. 10⁻³⁵ m). Itt az általános relativitáselmélet érvényét veszti, és a kvantumgravitáció veszi át, amelyet még senki nem ismer. Wheeler szerint a téridő itt „habossá” válhat. A hajó remegése szemléltetés.'},
+  bounce:{t:'Fekete lyukból fehér lyuk', tag:'Spekulatív · Haggard és Rovelli, 2014 · hurok-kvantumgravitáció',
+    p:'A modell szerint a beeső anyag nem zuhan végtelen sűrűségbe. Egy Planck-sűrűségű „csillaggá” tömörül, visszapattan, és a lyuk fehér lyukként adja vissza. Belülről ez egy pillanat, kintről a gravitációs időtágulás miatt nagyon hosszú idő. Ezért telnek el kint évek, amíg bent vagy.'},
+};
+const TH_N = Object.keys(THEORIES).length;
+const thCount = () => Object.keys(S.theories||{}).length;
+const discEl = document.getElementById('disc');
+let discTimer = 0;
+discEl.addEventListener('click', () => { discEl.hidden = true; discTimer = 0; });
+function discover(k){ if (!S.theories || S.theories[k]) return; S.theories[k] = true; const th = THEORIES[k];
+  document.getElementById('discTag').textContent = th.tag; document.getElementById('discT').textContent = `${th.t} · ${thCount()}/${TH_N}`;
+  document.getElementById('discP').textContent = typeof th.p==='function' ? th.p() : th.p;
+  discEl.hidden = false; discTimer = 16; updateSci(); }
+
+function makeZones(){
+  const a = Math.random()*TAU, sw = () => (Math.random()<.5?-1:1)*(120+Math.random()*360);
+  S.zn = { wa:{x:Math.cos(a)*1300, y:Math.sin(a)*1300, w:sw()},
+           wb:{x:Math.cos(a+2.9)*2900, y:Math.sin(a+2.9)*2900, w:sw()},
+           kerr:{x:Math.cos(a+1.9)*2100, y:Math.sin(a+1.9)*2100, w:sw()},
+           baby:{x:Math.cos(a-1.9)*2500, y:Math.sin(a-1.9)*2500, w:sw(), R:340} };
+  S.anti = false; S.inRing = false; S.wasBaby = false; S.loop = false; S.tIn = 0; S.wcd = 0; S.cl = 1;
+}
+const wormOpen = () => ((S.tIn % 7)/7) < 0.4;
+const inBaby = () => { const b = S.zn && S.zn.baby; return !!b && Math.hypot(S.x-b.x, S.y-b.y, S.w-b.w) < b.R; };
+const ringDist = () => { const k = S.zn.kerr; return Math.hypot(S.x-k.x, S.y-k.y); };
+
+function zoneEffects(dt){
+  const z = S.zn; if (!z) return;
+  S.tIn += dt; S.wcd = Math.max(0, S.wcd - dt);
+  for (const [m,o] of [[z.wa,z.wb],[z.wb,z.wa]]){
+    const dxy = Math.hypot(S.x-m.x, S.y-m.y), d = Math.hypot(dxy, S.w-m.w);
+    if (d < 110 && S.wcd <= 0){
+      if (wormOpen()){ S.x = o.x + Math.cos(S.ang)*200; S.y = o.y + Math.sin(S.ang)*200; S.w = o.w;
+        S.trail = []; S.camx = S.x; S.camy = S.y; S.flash = 0.8; S.wcd = 1.5; discover('worm'); toast('Átjutottál a féregjáraton', 'vio', 2); }
+      else { const nx = (S.x-m.x)/(dxy||1), ny = (S.y-m.y)/(dxy||1); S.px = nx*300; S.py = ny*300; S.wcd = 0.8;
+        toast('A torok zárva – várd ki, amíg kinyílik', 'danger', 1.8); }
+      break; } }
+  const k = z.kerr, dk = ringDist(), dwk = Math.abs(S.w - k.w);
+  if (dwk < 90){
+    if (Math.abs(dk-220) < 24){ const nx = (S.x-k.x)/(dk||1), ny = (S.y-k.y)/(dk||1), sg = dk>220 ? 1 : -1;
+      S.px += nx*sg*500; S.py += ny*sg*500; if (!toastKey) toast('A gyűrű maga a szingularitás – ne érintsd!', 'danger', 1.6); }
+    const inR = dk < 190;
+    if (inR && !S.inRing){ S.anti = !S.anti; S.flash = 0.6; discover('kerr');
+      toast(S.anti ? 'Antivilág: itt a gravitáció taszít' : 'Visszatértél a gyűrűn át', 'vio', 2.6); }
+    S.inRing = inR;
+  } else S.inRing = false;
+  const loopNow = S.anti && dk < 700;
+  if (loopNow && !S.loop) toast('Időhurok: a hajóidő visszafelé telik', 'vio', 2.4);
+  S.loop = loopNow;
+  const ib = inBaby();
+  if (ib && !S.wasBaby){ discover('baby'); toast('Bébi-univerzum: itt c csak 0,35 c₀', 'vio', 2.4); }
+  if (!ib && S.wasBaby) toast('Vissza a szülő-univerzumba', 'vio', 1.6);
+  S.wasBaby = ib;
+  const d4 = Math.hypot(S.x,S.y,S.w);
+  if (d4 < 430){ discover('planck'); const q = (430-d4)/280; S.x += (Math.random()-.5)*5*q; S.y += (Math.random()-.5)*5*q; S.w += (Math.random()-.5)*5*q; }
+}
+
+function zoneList(){ const z = S.zn; return [
+  {k:'w', o:z.wa, rw:140, r:95, col:'90,230,255', label:'ER=EPR · A'},
+  {k:'w', o:z.wb, rw:140, r:95, col:'255,110,220', label:'ER=EPR · B'},
+  {k:'kerr', o:z.kerr, rw:90, r:220, col:'255,170,70', label:'KERR-GYŰRŰ'},
+  {k:'baby', o:z.baby, rw:z.baby.R, r:z.baby.R, col:'255,215,120', label:'BÉBI-UNIVERZUM'}]; }
+function drawZone(zz, x, y, sc, t){
+  const dw = S.w - zz.o.w, ad = Math.abs(dw);
+  ctx.textAlign = 'center'; ctx.font = '500 10px "IBM Plex Mono", monospace';
+  if (ad < zz.rw){ const f = Math.sqrt(1 - (ad/zz.rw)**2); let label = zz.label, lr = zz.r*sc*f;
+    if (zz.k==='w'){ const open = wormOpen(), R = Math.max(4, zz.r*sc*(open?1:0.35)*f); lr = R;
+      ctx.lineWidth = 2;
+      for (let i=0;i<5;i++){ ctx.strokeStyle = `rgba(${zz.col},${(0.85-i*0.15).toFixed(2)})`; const a0 = t*0.003*(i%2?1:-1) + i;
+        ctx.beginPath(); ctx.arc(x,y,R*(1-i*0.14),a0,a0+4.2); ctx.stroke(); }
+      ctx.fillStyle = open ? 'rgba(0,0,0,0.85)' : 'rgba(60,60,72,0.9)'; ctx.beginPath(); ctx.arc(x,y,R*0.42,0,TAU); ctx.fill();
+      label += open ? ' · NYITVA' : ' · ZÁRVA'; }
+    else if (zz.k==='kerr'){ const R = zz.r*sc; lr = R;
+      ctx.fillStyle = `rgba(${zz.col},0.07)`; ctx.beginPath(); ctx.arc(x,y,R*0.86,0,TAU); ctx.fill();
+      ctx.strokeStyle = `rgba(${zz.col},${(0.9*f).toFixed(2)})`; ctx.lineWidth = Math.max(2, 34*sc*f); ctx.beginPath(); ctx.arc(x,y,R,0,TAU); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,240,220,0.8)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x,y,R,0,TAU); ctx.stroke();
+      if (V.z>0.1 || sc>0.1){ ctx.fillStyle = `rgba(${zz.col},0.7)`; ctx.fillText('repülj át a közepén', x, y + 4); } }
+    else { const R = Math.max(4, zz.r*sc*f);
+      const g = ctx.createRadialGradient(x,y,R*0.2,x,y,R); g.addColorStop(0,'rgba(255,240,200,0.05)'); g.addColorStop(0.8,'rgba(255,215,120,0.16)'); g.addColorStop(1,'rgba(255,215,120,0.6)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x,y,R,0,TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(255,245,215,0.85)';
+      for (let i=0;i<14;i++){ const aa = i*0.45 + t*0.0004*(i%3+1), rr = R*((i*0.377)%1); ctx.fillRect(x+Math.cos(aa)*rr, y+Math.sin(aa)*rr, 2, 2); } }
+    ctx.fillStyle = `rgba(${zz.col},0.95)`; ctx.fillText(label, x, y - Math.max(18, lr) - 8);
+  } else if (ad < zz.rw + 800){
+    ctx.strokeStyle = `rgba(${zz.col},0.45)`; ctx.setLineDash([2,4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x,y,7,0,TAU); ctx.stroke(); ctx.setLineDash([]);
+    const need = Math.round(zz.o.w - S.w); ctx.fillStyle = `rgba(${zz.col},0.7)`; ctx.fillText(`${zz.label} · ${need>0?'+':''}${need} W`, x, y - 14); }
+}
+function drawZonesTop(t){
+  if (!S.zn) return;
+  // holografikus határ: a tér széle, rajta a hajó helyzetéből képzett bitminta
+  const [cx0,cy0] = toS(0,0), RB = 4200*V.z;
+  ctx.strokeStyle = 'rgba(180,140,255,0.25)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx0,cy0,RB,0,TAU); ctx.stroke();
+  const qx = Math.floor(S.x/60), qy = Math.floor(S.y/60), qw = Math.floor(S.w/60);
+  for (let i=0;i<240;i++){ const on = ((Math.sin(i*12.9898 + qx*0.71 + qy*1.37 + qw*2.11)*43758.5453) % 1 + 1) % 1 > 0.5;
+    if (!on) continue; const aa = i/240*TAU; ctx.fillStyle = 'rgba(200,170,255,0.55)';
+    ctx.fillRect(cx0 + Math.cos(aa)*RB - 1.5, cy0 + Math.sin(aa)*RB - 1.5, 3, 3); }
+  if (RB > 60){ ctx.fillStyle = 'rgba(200,170,255,0.6)'; ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillText('HOLOGRAFIKUS HATÁR', cx0, cy0 - RB - 8); }
+  // ER=EPR: az összefonódás vonala a két torok között
+  const [ax,ay] = toS(S.zn.wa.x,S.zn.wa.y), [bx,by] = toS(S.zn.wb.x,S.zn.wb.y);
+  ctx.strokeStyle = 'rgba(170,170,255,0.18)'; ctx.setLineDash([1,6]); ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.stroke(); ctx.setLineDash([]);
+  // Planck-hab a szingularitás körül
+  if (Math.abs(S.w) < 430){ const q = 1 - Math.abs(S.w)/430;
+    for (let i=0;i<50;i++){ const aa = Math.random()*TAU, rr = Math.random()*380*V.z; ctx.strokeStyle = `rgba(255,${(150+Math.random()*100)|0},200,${(0.35*q).toFixed(2)})`;
+      ctx.beginPath(); ctx.arc(cx0 + Math.cos(aa)*rr, cy0 + Math.sin(aa)*rr, 1 + Math.random()*5, 0, TAU); ctx.stroke(); } }
+  for (const zz of zoneList()){ const [x,y] = toS(zz.o.x, zz.o.y); drawZone(zz, x, y, V.z, t); }
+}
+function drawZonesCockpit(t, f, hcx, hcy, fx, fy, rxv, ryv){
+  if (!S.zn) return;
+  const list = zoneList().map(zz => { const rx = zz.o.x - S.x, ry = zz.o.y - S.y; return {zz, a:rx*fx + ry*fy, b:rx*rxv + ry*ryv}; }).sort((p,q) => q.a - p.a);
+  for (const {zz,a,b} of list){ if (a < 30) continue; const x = hcx + f*b/a; if (x < -300 || x > W+300) continue; drawZone(zz, x, hcy, f/a, t); }
+  if (Math.abs(S.w) < 430){ const rx = -S.x, ry = -S.y, a = rx*fx + ry*fy;
+    if (a > 30){ const x = hcx + f*(rx*rxv + ry*ryv)/a, q = 1 - Math.abs(S.w)/430;
+      for (let i=0;i<40;i++){ const aa = Math.random()*TAU, rr = Math.random()*380*f/a; ctx.strokeStyle = `rgba(255,${(150+Math.random()*100)|0},200,${(0.35*q).toFixed(2)})`;
+        ctx.beginPath(); ctx.arc(x + Math.cos(aa)*rr, hcy + Math.sin(aa)*rr, 1 + Math.random()*5, 0, TAU); ctx.stroke(); } } }
+}
+
+// ---- Kozmosz: köd, kettős lyuk (gravitációs hullámok), ergoszféra (Penrose), ikerparadoxon ----
+const NEB = [];
+{ const cols = ['255,90,170','80,200,220','120,110,255','255,150,90','90,230,170','200,120,255','255,110,110','110,170,255'];
+  for (let i=0;i<9;i++){ const lon = Math.random()*TAU, lat = (Math.random()-.5)*0.9;
+    NEB.push({x:Math.cos(lat)*Math.cos(lon), y:Math.cos(lat)*Math.sin(lon), z:Math.sin(lat), ang:0.18+Math.random()*0.35, col:cols[i%cols.length],
+      u:Math.random(), v:Math.random(), rpx:220+Math.random()*320}); } }
+function drawNebulaTop(){
+  const D = Math.max(W,H) + 600; ctx.globalCompositeOperation = 'lighter';
+  for (const n of NEB){ const x = ((n.u*D - S.camx*V.z*0.004) % D + D) % D - 300, y = ((n.v*D - S.camy*V.z*0.004) % D + D) % D - 300;
+    const g = ctx.createRadialGradient(x,y,0,x,y,n.rpx); g.addColorStop(0,`rgba(${n.col},0.10)`); g.addColorStop(0.5,`rgba(${n.col},0.04)`); g.addColorStop(1,`rgba(${n.col},0)`);
+    ctx.fillStyle = g; ctx.fillRect(x-n.rpx, y-n.rpx, n.rpx*2, n.rpx*2); }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+// kettős fekete lyuk: a keringési frekvencia a valódi csiripelés szerint nő: ω ∝ (t_c − t)^(−3/8)
+const OM0 = TAU/3.2, SEP0 = 300, GW_T = 85;
+function newGW(){ return {x:13500, y:-5200, t:0, T:GW_T, phi:0, om:OM0, sep:SEP0, amp:Math.pow(OM0,2/3), state:'in', st:0, clock:0, hist:[], mergeClock:-1e9}; }
+function stepGW(dt){
+  const g = S.gw; g.clock += dt;
+  if (g.state==='in'){ g.t += dt; const x = Math.max(1e-3, 1 - g.t/g.T); g.om = OM0*Math.pow(x,-3/8); g.phi += g.om*dt;
+    g.sep = SEP0*Math.pow(OM0/g.om, 2/3); g.amp = Math.pow(g.om, 2/3);
+    if (g.sep < 46 || x <= 1e-3){ g.state = 'ring'; g.st = 0; g.mergeClock = g.clock; g.omR = g.om*1.7; g.ampM = g.amp*1.3; } }
+  else if (g.state==='ring'){ g.st += dt; g.amp = g.ampM*Math.exp(-g.st/0.35); g.phi += g.omR*dt; g.om = g.omR; if (g.st > 2.5){ g.state = 'quiet'; g.st = 0; g.amp = 0; } }
+  else { g.st += dt; g.amp = 0; if (g.st > 28){ g.state = 'in'; g.t = 0; g.phi = 0; g.om = OM0; g.sep = SEP0; } }
+  g.hist.push({c:g.clock, phi:g.phi, amp:g.amp, om:g.om});
+  while (g.hist.length && g.hist[0].c < g.clock - 30) g.hist.shift();
+  // a hajónál mért, késleltetett jel (a hullám fénysebességgel terjed)
+  const d = Math.hypot(S.x-g.x, S.y-g.y), e = gwAt(d), prevTr = S.gwTr ?? -1e9, tr = g.clock - d/C;
+  S.gwTr = tr;
+  S.gwA = 330*e.amp/Math.max(d, 800); S.gwOm = e.om;
+  const h = S.gwA*Math.cos(2*e.phi);
+  S.hw = clamp(h*0.03, -0.035, 0.035);
+  S.gwBuf.push(h + (Math.random()-.5)*0.003); if (S.gwBuf.length > 140) S.gwBuf.shift();
+  if (prevTr < g.mergeClock && tr >= g.mergeClock && mode==='play'){ S.gwFlash = 1;
+    if (d < 16000) toast('Összeolvadás! A tömeg kb. 5%-a gravitációs hullámként sugárzott szét – a hullám fénysebességgel ért ide', 'vio', 4); }
+  S.gwFlash = Math.max(0, S.gwFlash - dt*0.8);
+}
+function gwAt(dist){
+  const g = S.gw, h = g.hist, tr = g.clock - dist/C; if (!h.length || tr < h[0].c) return {phi:0, amp:0, om:0};
+  let lo = 0, hi = h.length-1; while (lo < hi){ const m = (lo+hi+1)>>1; if (h[m].c <= tr) lo = m; else hi = m-1; }
+  return h[lo];
+}
+function gwBodies(){ const g = S.gw;
+  if (g.state==='in'){ const c = Math.cos(g.phi), s = Math.sin(g.phi), r1 = g.sep*29/65, r2 = g.sep*36/65;
+    return [{x:g.x + c*r1, y:g.y + s*r1, r:30}, {x:g.x - c*r2, y:g.y - s*r2, r:26}]; }
+  return [{x:g.x, y:g.y, r:44}]; }
+function drawGWTop(t){
+  const g = S.gw;
+  // a két karú spirál: a kvadrupól-sugárzás hullámfrontjai, késleltetett fázissal
+  for (const k of [0, Math.PI]){
+    let prev = null;
+    for (let r = 50; r < 14000; r += 45){ const e = gwAt(r); if (e.amp <= 0.01){ prev = null; continue; }
+      const th = e.phi + k, wx = g.x + Math.cos(th)*r, wy = g.y + Math.sin(th)*r; const P = toS(wx, wy);
+      if (prev){ const al = clamp(e.amp*0.09*(1 - r/14000), 0, 0.5);
+        ctx.strokeStyle = `rgba(150,190,255,${al.toFixed(3)})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(prev[0],prev[1]); ctx.lineTo(P[0],P[1]); ctx.stroke(); }
+      prev = P; } }
+  ctx.globalCompositeOperation = 'lighter';
+  for (const b of gwBodies()){ const [x,y] = toS(b.x,b.y), rr = Math.max(3, b.r*V.z);
+    const gl = ctx.createRadialGradient(x,y,rr*0.8,x,y,rr*3.2); gl.addColorStop(0,'rgba(255,180,120,0.5)'); gl.addColorStop(1,'rgba(255,120,60,0)');
+    ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(x,y,rr*3.2,0,TAU); ctx.fill(); }
+  ctx.globalCompositeOperation = 'source-over';
+  for (const b of gwBodies()){ const [x,y] = toS(b.x,b.y), rr = Math.max(3, b.r*V.z); ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(x,y,rr,0,TAU); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,220,180,0.8)'; ctx.lineWidth = 1; ctx.stroke(); }
+  if (g.state==='ring'){ const [x,y] = toS(g.x,g.y); const q = Math.exp(-g.st/0.6); ctx.fillStyle = `rgba(230,220,255,${(0.6*q).toFixed(3)})`; ctx.beginPath(); ctx.arc(x,y,(60+g.st*400)*V.z,0,TAU); ctx.fill(); }
+  const [lx,ly] = toS(g.x,g.y); ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(200,215,255,0.85)';
+  ctx.fillText(g.state==='in' ? 'KETTŐS LYUK · 36 + 29 M☉' : 'MARADVÁNYLYUK · 62 M☉', lx, ly - Math.max(24, (SEP0*0.6+40)*V.z) - 6);
+}
+function drawGWCockpit(f, hcx, hcy, fx, fy, rxv, ryv, aber, proj, edgeMark){
+  const g = S.gw, dx = g.x - S.x, dy = g.y - S.y, d = Math.hypot(dx,dy);
+  const [ax,ay,az] = aber(dx/d, dy/d, 0); const P = proj(ax,ay,az);
+  if (!P || P[0] < -40 || P[0] > W+40){ if (d < 200000) edgeMark(Math.atan2(dy,dx), 'GW', 'rgba(170,200,255,0.85)', hcy + 60); return; }
+  ctx.globalCompositeOperation = 'lighter';
+  for (const b of gwBodies()){ const rx = b.x - S.x, ry = b.y - S.y, a = rx*fx + ry*fy; if (a < 30) continue;
+    const x = hcx + f*(rx*rxv + ry*ryv)/a, rr = Math.max(2, f*b.r/a);
+    const gl = ctx.createRadialGradient(x,hcy,rr*0.6,x,hcy,rr*4+6); gl.addColorStop(0,'rgba(255,190,130,0.7)'); gl.addColorStop(1,'rgba(255,120,60,0)');
+    ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(x,hcy,rr*4+6,0,TAU); ctx.fill(); }
+  if (S.gwFlash>0){ const gf = ctx.createRadialGradient(P[0],P[1],0,P[0],P[1],60+S.gwFlash*240); gf.addColorStop(0,`rgba(235,225,255,${(S.gwFlash*0.9).toFixed(3)})`); gf.addColorStop(1,'rgba(200,180,255,0)');
+    ctx.fillStyle = gf; ctx.beginPath(); ctx.arc(P[0],P[1],60+S.gwFlash*240,0,TAU); ctx.fill(); }
+  ctx.globalCompositeOperation = 'source-over';
+  for (const b of gwBodies()){ const rx = b.x - S.x, ry = b.y - S.y, a = rx*fx + ry*fy; if (a < 30) continue;
+    const x = hcx + f*(rx*rxv + ry*ryv)/a, rr = Math.max(1.5, f*b.r/a); ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(x,hcy,rr,0,TAU); ctx.fill(); }
+  ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(200,215,255,0.85)';
+  ctx.fillText(`KETTŐS LYUK · ${fmt(d/1000)}k`, P[0], P[1] - 22);
+}
+function drawScope(){
+  if (mode!=='play' || S.inside) return;
+  const w = 150, h = 44, x = W/2 - w/2, y = H - SA.b - 22 - 132 - 12 - h;
+  ctx.fillStyle = 'rgba(8,10,18,0.7)'; ctx.strokeStyle = 'rgba(150,190,255,0.35)'; ctx.lineWidth = 1;
+  ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x,y,w,h,6); else ctx.rect(x,y,w,h); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = 'rgba(150,190,255,0.12)'; ctx.beginPath(); ctx.moveTo(x+4,y+h/2); ctx.lineTo(x+w-4,y+h/2); ctx.stroke();
+  const buf = S.gwBuf, n = buf.length; let m = 0.02; for (const v of buf) m = Math.max(m, Math.abs(v));
+  if (n > 1){ ctx.strokeStyle = 'rgba(180,210,255,0.95)'; ctx.lineWidth = 1.3; ctx.beginPath();
+    for (let i=0;i<n;i++){ const px = x + 4 + (w-8)*i/139, py = y + h/2 - buf[i]/m*(h/2-6); if (i) ctx.lineTo(px,py); else ctx.moveTo(px,py); } ctx.stroke(); }
+  ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(170,195,255,0.6)'; ctx.fillText(`erősítés ×${sci(1/m)}`, x + w - 6, y + h - 5);
+  ctx.font = '500 8.5px "IBM Plex Mono", monospace'; ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(170,195,255,0.75)';
+  ctx.fillText('GW-DETEKTOR · h', x + 6, y + 10);
+}
+
+// ergoszféra és Penrose-folyamat (forgó lyuk szemléltetése)
+const ERGO = 1.6*RS;
+const OMEGA0 = C/ERGO*Math.pow(ERGO/RS, 3);   // a vonszolt szögsebesség ∝ 1/r³; az ergoszféra szélén ω·r = c
+function frameDrag(dt, r, g){
+  if (r > ERGO*2.4) return;
+  const om = OMEGA0*Math.pow(RS/r, 3), tx = -S.y/r, ty = S.x/r;
+  const vt = S.vx*tx + S.vy*ty, vd = Math.min(om*r, 0.98*C), k = 4*Math.pow(RS/r, 3);
+  const dp = (vd - vt)*k*dt*g; S.px += tx*dp; S.py += ty*dp;
+}
+function dropCargo(){
+  if (S.inside || mode!=='play') return;
+  if (S.cargo <= 0){ toast('Nincs több rakomány', 'danger'); return; }
+  const r = r0(), tx = -S.y/r, ty = S.x/r, bx = -Math.cos(S.ang), by = -Math.sin(S.ang);
+  S.cargo--;
+  const o = {x:S.x + bx*12, y:S.y + by*12, vx:S.vx + bx*500, vy:S.vy + by*500, neg:false};
+  S.cargoObjs.push(o);
+  if (r < ERGO){
+    if (bx*tx + by*ty < -0.3){ const eta = 0.207*clamp((ERGO - r)/(ERGO - RS), 0.15, 1);
+      o.neg = true; S.energy = Math.min(170, S.energy + 40 + eta*450); S.px += Math.cos(S.ang)*eta*C*2; S.py += Math.sin(S.ang)*eta*C*2;
+      S.penrose++; S.flash = 0.35;
+      toast(`Penrose-folyamat · negatív energiájú rakomány zuhant be · +${fmt(eta*100,1)}% energia a lyuk forgásából`, 'vio', 3.4); }
+    else toast('A forgás irányába repülj, és úgy dobd hátra a rakományt', 'danger', 2.6);
+  } else toast(`Csak az ergoszférán belül működik (${fmt(ERGO/RS,1)} rs-en belül)`, 'danger', 2.4);
+}
+function stepCargo(dt){
+  for (const o of S.cargoObjs){ if (o.gone) continue;
+    for (let i=0;i<4;i++){ const sd = dt/4, r = Math.hypot(o.x,o.y);
+      if (r < RS){ o.gone = true; for (let j=0;j<30;j++){ const a = Math.random()*TAU, v = 60+Math.random()*200;
+          S.parts.push({x:o.x,y:o.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:1,c:o.neg?'180,140,255':'255,176,74'}); } break; }
+      const a = GM/((r-RS)**2), om = OMEGA0*Math.pow(RS/r,3), tx = -o.y/r, ty = o.x/r;
+      o.vx += -o.x/r*a*sd + tx*(Math.min(om*r,0.98*C) - (o.vx*tx+o.vy*ty))*4*Math.pow(RS/r,3)*sd;
+      o.vy += -o.y/r*a*sd + ty*(Math.min(om*r,0.98*C) - (o.vx*tx+o.vy*ty))*4*Math.pow(RS/r,3)*sd;
+      const sp = Math.hypot(o.vx,o.vy); if (sp > 0.98*C){ o.vx *= 0.98*C/sp; o.vy *= 0.98*C/sp; }
+      o.x += o.vx*sd; o.y += o.vy*sd; } }
+  S.cargoObjs = S.cargoObjs.filter(o => !o.gone);
+}
+function drawErgoTop(t, bx, by){
+  const z = V.z, er = ERGO*z, hr = RS*z;
+  ctx.globalCompositeOperation = 'lighter';
+  const eg = ctx.createRadialGradient(bx,by,hr,bx,by,er); eg.addColorStop(0,'rgba(120,200,255,0.18)'); eg.addColorStop(1,'rgba(150,110,255,0.05)');
+  ctx.fillStyle = eg; ctx.beginPath(); ctx.arc(bx,by,er,0,TAU); ctx.arc(bx,by,hr,0,TAU,true); ctx.fill();
+  for (let i=0;i<22;i++){ const rr = RS*(1.02 + 0.58*((i*0.618)%1)); const w = OMEGA0*Math.pow(RS/rr,3)*0.25;
+    const a0 = t*0.001*w*3 + i*1.7; ctx.strokeStyle = `rgba(150,215,255,${(0.35 + 0.3*((i*0.37)%1)).toFixed(2)})`; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(bx,by,rr*z,a0,a0+0.6); ctx.stroke(); }
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.setLineDash([6,5]); ctx.lineDashOffset = -t*0.05; ctx.strokeStyle = 'rgba(170,140,255,0.85)'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(bx,by,er,0,TAU); ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
+  if (z > 0.25){ ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(190,170,255,0.9)'; ctx.fillText('ERGOSZFÉRA · itt semmi sem állhat meg', bx, by - er - 6); }
+  for (const o of S.cargoObjs){ const [x,y] = toS(o.x,o.y); ctx.fillStyle = o.neg ? '#c9a8ff' : '#ffb04a'; ctx.fillRect(x-3,y-3,6,6); }
+}
+function drawJets(t, bx, by, shPx){
+  const power = [0.35, 0.6, 1][massIdx];
+  const jl = Math.min(H*1.1, shPx*45);
+  ctx.globalCompositeOperation = 'lighter';
+  for (const dir of [-1, 1]){
+    const w0 = Math.max(1.2, shPx*0.22), w1 = Math.max(5, shPx*3.2);
+    const g = ctx.createLinearGradient(bx, by, bx, by + dir*jl);
+    g.addColorStop(0, `rgba(215,230,255,${(0.9*power).toFixed(2)})`); g.addColorStop(0.18, `rgba(150,185,255,${(0.42*power).toFixed(2)})`); g.addColorStop(1, 'rgba(110,150,255,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(bx - w0, by); ctx.lineTo(bx - w1, by + dir*jl); ctx.lineTo(bx + w1, by + dir*jl); ctx.lineTo(bx + w0, by); ctx.fill();
+    for (let k=0;k<7;k++){ const s = (t*0.00035*(1 + k*0.07) + k/7) % 1, yy = by + dir*jl*s*0.85, ww = w0 + (w1 - w0)*s*0.85;
+      ctx.fillStyle = `rgba(235,242,255,${((1 - s)*0.75*power).toFixed(3)})`; ctx.beginPath(); ctx.ellipse(bx, yy, ww*0.45, Math.max(1.5, ww*0.25), 0, 0, TAU); ctx.fill(); } }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+// ikerparadoxon
+let mission = 'beacons';
+const TWIN_RATIO = 4, TWIN_MIN = 730;
+function twinRatio(){ return S.tau > 0.01 ? S.tE/S.tau : Infinity; }
+function checkTwin(){
+  if (S.mission !== 'twin') return;
+  const ok = S.tE >= TWIN_MIN && twinRatio() >= TWIN_RATIO;
+  if (ok && !S.twinReady) toast('Feltételek teljesültek – irány haza a Föld-kapuhoz!', '', 3.5);
+  S.twinReady = ok;
+  if (ok && Math.hypot(S.x - S.home.x, S.y - S.home.y) < 170) winTwin();
+}
+function winTwin(){ mode = 'won'; const rt = twinRatio();
+  endCard('Hazaértél', `Neked ${tfmt(S.tau)} telt el, a Földön ${tfmt(S.tE)}. Az ikertestvéred ${tfmt(S.tE - S.tau)} idősebb lett nálad${isFinite(rt) ? ` – ${fmt(rt,1)}-szoros arány` : ''}. Ez nem illúzió: a GPS-műholdak óráit is ezért kell naponta kb. 38 mikroszekundummal korrigálni.`); }
+function drawHomeTop(t){
+  if (S.mission !== 'twin') return;
+  const [x,y] = toS(S.home.x, S.home.y), rr = 170*V.z;
+  const p = (t*0.001) % 1;
+  ctx.strokeStyle = S.twinReady ? 'rgba(120,255,170,0.95)' : 'rgba(120,255,170,0.45)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x,y,Math.max(8,rr),0,TAU); ctx.stroke();
+  ctx.strokeStyle = `rgba(120,255,170,${((1-p)*0.5).toFixed(2)})`; ctx.beginPath(); ctx.arc(x,y,Math.max(8,rr)*(1+p*0.6),0,TAU); ctx.stroke();
+  ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(150,255,190,0.9)'; ctx.fillText('FÖLD-KAPU', x, y - Math.max(8,rr) - 10);
+}
+function drawHomeCockpit(t, f, hcx, hcy, fx, fy, rxv, ryv, edgeMark){
+  if (S.mission !== 'twin') return;
+  const rx = S.home.x - S.x, ry = S.home.y - S.y, a = rx*fx + ry*fy;
+  const x = a > 30 ? hcx + f*(rx*rxv + ry*ryv)/a : -1e4;
+  if (a <= 30 || x < -20 || x > W+20){ edgeMark(Math.atan2(ry,rx), 'FÖLD', 'rgba(120,255,170,0.9)', hcy + 90); return; }
+  const rr = Math.max(6, f*170/a);
+  ctx.strokeStyle = S.twinReady ? 'rgba(120,255,170,0.95)' : 'rgba(120,255,170,0.5)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x,hcy,rr,0,TAU); ctx.stroke();
+  ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(150,255,190,0.9)';
+  ctx.fillText(`FÖLD-KAPU · ${fmt(Math.hypot(rx,ry)/1000)}k`, x, hcy - rr - 10);
+}
+
+// ---- Távoli helyek: valódi távolságok (1 játékmásodperc = 1 nap, 1 fénynap = 900 egység) ----
+const LY = 900*365.25;
+const gauss = () => (Math.random()+Math.random()+Math.random()+Math.random()-2)/2;
+const PLACES = [
+  {id:'proxima', n:'Vörös törpe és bolygója', sub:'Proxima Centauri mintájára', ly:4.24, ang:-2.3, type:'star', col:'255,110,70', R:0.06*LY,
+    card:'A legközelebbi csillagtípus: halvány, hűvös vörös törpe. A bolygója olyan közel kering, hogy egyik oldala mindig a csillag felé néz. A csillag gyakran tör ki: egy-egy kitörése ezerszer erősebb lehet a Napénál.'},
+  {id:'sirius', n:'Csillag és fehér törpe', sub:'Szíriusz A és B', ly:8.6, ang:1.1, type:'binary', col:'235,245,255', R:0.06*LY,
+    card:'A fényes csillag mellett egy fehér törpe kering: nagyjából egy Napnyi tömeg Föld méretű gömbbe sűrítve. Egy teáskanálnyi anyaga több tonnát nyomna. Ez lesz a Nap sorsa is.'},
+  {id:'orion', n:'Csillagbölcső-köd', sub:'Orion-köd mintájára', ly:1344, ang:0.4, type:'nebula', R:12*LY,
+    card:'Hidrogénfelhő, amelyben most születnek csillagok. A vörös fény a hidrogén 656 nm-es színképvonala; a fiatal, forró csillagok UV-sugárzása gerjeszti. A legközelebbi nagy csillagkeletkezési terület a Földhöz.'},
+  {id:'crab', n:'Szupernóva-maradvány', sub:'Rák-köd mintájára', ly:6500, ang:2.6, type:'snr', R:5.5*LY,
+    card:'1054-ben kínai csillagászok egy nappal is látható „vendégcsillagot” jegyeztek fel: ez volt a robbanás. A közepén egy másodpercenként kb. 30-szor forduló pulzár maradt. A kék derengés szinkrotronsugárzás: mágneses térben spirálozó gyors elektronok fénye.'},
+  {id:'m4', n:'Gömbhalmaz', sub:'M4 mintájára', ly:7200, ang:-0.9, type:'cluster', R:35*LY,
+    card:'Több százezer csillag, nagyjából 12 milliárd évesek – a Galaxis legöregebb lakói közé tartoznak. A forró kék csillagok már rég kiégtek, ezért a halmaz sárgás-vöröses.'},
+  {id:'magnetar', n:'Magnetár', sub:'SGR 1806−20 mintájára', ly:42000, ang:-1.7, type:'magnetar', R:0.08*LY,
+    card:'Neutroncsillag elképesztő mágneses térrel: kb. 10¹¹ tesla, ezermilliárdszor erősebb a Földénél. 2004-ben egy kitörése 50 000 fényévről is megzavarta a Föld ionoszféráját.'},
+  {id:'andromeda', n:'Andromeda-galaxis', sub:'M31', ly:2.5e6, ang:3.0, type:'galaxy', R:70000*LY,
+    card:'Kb. egybillió csillag. Közeledik a Tejútrendszer felé, és körülbelül 4–5 milliárd év múlva összeolvadnak. A fénye, amit ma a Földről látunk, 2,5 millió éve indult el.'},
+];
+for (const p of PLACES){
+  p.x = Math.cos(p.ang)*p.ly*LY; p.y = Math.sin(p.ang)*p.ly*LY; p.pts = []; const R = p.R;
+  if (p.type==='nebula'){ const cs = ['255,80,110','255,80,110','80,220,200','120,150,255','255,140,120'];
+    for (let i=0;i<80;i++) p.pts.push({dx:gauss()*R*0.55, dy:gauss()*R*0.55, dz:gauss()*R*0.25, r:R*(0.06+Math.random()*0.2), c:cs[i%cs.length], k:'blob'});
+    for (let i=0;i<30;i++) p.pts.push({dx:gauss()*R*0.08, dy:gauss()*R*0.08, dz:gauss()*R*0.05, r:0, c:'210,230,255', k:'star'}); }
+  if (p.type==='snr'){ for (let i=0;i<360;i++){ const u = Math.random()*2-1, a = Math.random()*TAU, s = Math.sqrt(1-u*u), rr = R*0.5*(0.75+Math.random()*0.35);
+      p.pts.push({dx:Math.cos(a)*s*rr, dy:Math.sin(a)*s*rr, dz:u*rr*0.7, r:R*0.012*(1+Math.random()*2), c:['255,110,80','255,170,90','140,255,170'][i%3], k:'blob'}); }
+    for (let i=0;i<12;i++) p.pts.push({dx:gauss()*R*0.15, dy:gauss()*R*0.15, dz:gauss()*R*0.1, r:R*0.12, c:'120,160,255', k:'blob'}); }
+  if (p.type==='cluster'){ const a = R*0.12; for (let i=0;i<520;i++){ const u = Math.max(0.02, Math.random()), r = Math.min(R, a/Math.sqrt(Math.pow(u,-2/3)-1+1e-6));
+      const v = Math.random()*2-1, b = Math.random()*TAU, s = Math.sqrt(1-v*v);
+      p.pts.push({dx:Math.cos(b)*s*r, dy:Math.sin(b)*s*r, dz:v*r, r:0, c:Math.random()<0.15?'255,170,120':'255,230,180', k:'star'}); } }
+  if (p.type==='galaxy'){ for (let i=0;i<900;i++){ let dx, dy, c;
+      if (i < 220){ const r = Math.abs(gauss())*R*0.12, a = Math.random()*TAU; dx = Math.cos(a)*r; dy = Math.sin(a)*r; c = '255,225,170'; }
+      else { const arm = i%2, tt = Math.random()*3.2, r = R*0.12*Math.exp(0.55*tt) , a = tt*1.9 + arm*Math.PI + gauss()*0.25;
+        dx = Math.cos(a)*Math.min(r,R); dy = Math.sin(a)*Math.min(r,R); c = Math.random()<0.7 ? '180,200,255' : '255,150,170'; }
+      p.pts.push({dx, dy, dz:gauss()*R*0.02, r:0, c, k:'star'}); } }
+}
+function fmtLy(u){ const l = u/LY; if (l < 0.01) return fmt(u/900, 1) + ' fénynap'; if (l < 1e4) return fmt(l, l<10?2:0) + ' fényév'; if (l < 1e6) return fmt(l/1e3,1) + ' ezer fényév'; return fmt(l/1e6,2) + ' millió fényév'; }
+function etaShip(d){ const pv = S.gamma*S.beta*C; return pv > 1 ? d/pv : Infinity; }   // hajóidő-másodperc = nap
+function segDist(ax,ay,bx,by,px,py){ const vx = bx-ax, vy = by-ay, l2 = vx*vx+vy*vy; let t = l2 ? ((px-ax)*vx + (py-ay)*vy)/l2 : 0; t = clamp(t,0,1); return Math.hypot(ax+vx*t-px, ay+vy*t-py); }
+function checkPlaces(ax, ay){
+  for (const p of PLACES){ if (S.visited[p.id]) continue; if (segDist(ax,ay,S.x,S.y,p.x,p.y) < p.R) visitPlace(p); } }
+function visitPlace(p){
+  S.visited[p.id] = true; const nv = Object.keys(S.visited).length;
+  document.getElementById('discTag').textContent = `Felkeresett hely · ${nv}/${PLACES.length} · ${fmtLy(Math.hypot(p.x,p.y))} a starttól`;
+  document.getElementById('discT').textContent = `${p.n} · ${p.sub}`;
+  document.getElementById('discP').textContent = `${p.card} Eddig a Földön ${tfmt(S.tE)} telt el, a hajón ${tfmt(S.tau)}.`;
+  discEl.hidden = false; discTimer = 18; toast(`Megérkeztél: ${p.n}`, '', 2.4);
+}
+function placeVisualPts(p, t){
+  // a csillag-típusú helyek (nagyítva) közép körüli elemei
+  if (p.type==='star') return [{dx:0,dy:0,dz:0,r:0.004*LY,c:p.col,k:'glow'}, {dx:Math.cos(t*0.0004)*0.02*LY, dy:Math.sin(t*0.0004)*0.02*LY, dz:0, r:0.0012*LY, c:'120,150,190', k:'planet'}];
+  if (p.type==='binary') return [{dx:0,dy:0,dz:0,r:0.005*LY,c:'235,245,255',k:'glow'}, {dx:Math.cos(t*0.0002)*0.025*LY, dy:Math.sin(t*0.0002)*0.025*LY, dz:0, r:0.0016*LY, c:'170,200,255', k:'glow'}];
+  if (p.type==='magnetar'){ const fl = (t % 7000) < 260 ? 1 : 0; return [{dx:0,dy:0,dz:0,r:(0.002+fl*0.02)*LY,c:fl?'240,230,255':'190,170,255',k:'glow'}]; }
+  return p.pts;
+}
+function drawPlacesCockpit(t, f, hcx, hcy, fx, fy, rxv, ryv, aber, proj){
+  const lefts = [], rights = [];
+  for (const p of PLACES){
+    const dx = p.x - S.x, dy = p.y - S.y, d = Math.hypot(dx,dy);
+    const angPx = f*p.R/Math.max(d,1), visited = !!S.visited[p.id];
+    const pts = placeVisualPts(p, t);
+    if (angPx > 3 || d < p.R*3){
+      ctx.globalCompositeOperation = 'lighter';
+      for (const q of pts){ const vx = dx + q.dx, vy = dy + q.dy, vz = q.dz, dd = Math.hypot(vx,vy,vz) || 1;
+        const [ax,ay,az] = aber(vx/dd, vy/dd, vz/dd); const P = proj(ax,ay,az); if (!P) continue;
+        const [x,y] = P; if (x < -400 || x > W+400 || y < -400 || y > H+400) continue;
+        if (q.k==='star'){ const s = clamp(f*0.6*LY/dd, 0.6, 2.4); ctx.fillStyle = `rgba(${q.c},0.85)`; ctx.fillRect(x, y, s, s); }
+        else if (q.k==='planet'){ const rr = Math.max(1.5, f*q.r/dd); ctx.fillStyle = `rgba(${q.c},1)`; ctx.beginPath(); ctx.arc(x,y,rr,0,TAU); ctx.fill(); }
+        else { const rr = Math.max(q.k==='glow'?3:2, f*q.r/dd*(q.k==='glow'?6:1)); if (rr > 2000) continue;
+          const g = ctx.createRadialGradient(x,y,0,x,y,rr); const a0 = q.k==='glow' ? 0.95 : 0.26;
+          g.addColorStop(0,`rgba(${q.c},${a0})`); g.addColorStop(q.k==='glow'?0.25:0.5,`rgba(${q.c},${a0*0.4})`); g.addColorStop(1,`rgba(${q.c},0)`);
+          ctx.fillStyle = g; ctx.fillRect(x-rr,y-rr,rr*2,rr*2); } }
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    const [ax,ay,az] = aber(dx/d, dy/d, 0); const P = proj(ax,ay,az);
+    const eta = etaShip(d), label = `${p.n} · ${fmtLy(d)}${S.beta>0.05 && isFinite(eta) ? ' · ' + tfmt(eta) + ' hajóidő' : ''}`;
+    if (P && P[0] > 10 && P[0] < W-10){
+      if (angPx <= 3){ ctx.fillStyle = visited ? 'rgba(200,210,230,0.6)' : 'rgba(255,240,200,0.95)'; ctx.beginPath(); ctx.arc(P[0],P[1],2.2,0,TAU); ctx.fill(); }
+      ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = visited ? 'rgba(200,210,230,0.55)' : 'rgba(255,236,200,0.9)';
+      ctx.fillText(label, P[0], P[1] + 30);
+    } else (wrap(Math.atan2(dy,dx) - S.ang) > 0 ? rights : lefts).push({p, d, visited});
+  }
+  ctx.font = '500 9.5px "IBM Plex Mono", monospace';
+  const col = (arr, right) => arr.slice(0,7).forEach((o,i) => { ctx.textAlign = right ? 'right' : 'left'; ctx.fillStyle = o.visited ? 'rgba(200,210,230,0.45)' : 'rgba(255,236,200,0.75)';
+    const short = o.p.n.split(' ')[0]; ctx.fillText(right ? `${short} · ${fmtLy(o.d)} ▶` : `◀ ${short} · ${fmtLy(o.d)}`, right ? W - SA.r - 12 : SA.l + 12, hcy + 130 + i*14); });
+  col(lefts, false); col(rights, true);
+}
+function drawPlacesTop(t){
+  for (const p of PLACES){ const [cx,cy] = toS(p.x,p.y), R = p.R*V.z; if (cx + R < -50 || cx - R > W+50 || cy + R < -50 || cy - R > H+50) continue;
+    const pts = placeVisualPts(p, t); ctx.globalCompositeOperation = 'lighter';
+    for (const q of pts){ const [x,y] = toS(p.x+q.dx, p.y+q.dy);
+      if (q.k==='star'){ ctx.fillStyle = `rgba(${q.c},0.85)`; ctx.fillRect(x,y,1.6,1.6); }
+      else { const rr = Math.max(q.k==='glow'?4:2, q.r*V.z*(q.k==='glow'?6:1)); if (rr > 3000) continue; const g = ctx.createRadialGradient(x,y,0,x,y,rr);
+        const a0 = q.k==='glow' ? 0.95 : (q.k==='planet' ? 1 : 0.16); g.addColorStop(0,`rgba(${q.c},${a0})`); g.addColorStop(1,`rgba(${q.c},0)`); ctx.fillStyle = g; ctx.fillRect(x-rr,y-rr,rr*2,rr*2); } }
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,236,200,0.9)'; ctx.fillText(p.n, cx, cy - Math.max(16, Math.min(R, H/3)) - 6); }
+}
+
+// ---- Alcubierre-hajtómű: a téridő maga mozog, a hajó a buborékban szabadon esik ----
+const ALC_SPEEDS = [10, 1e3, 1e5, 1e7];
+let alcSpeedIdx = 1;
+const alcEl = document.getElementById('alc');
+function alcTargets(){
+  const list = PLACES.map(p => ({id:p.id, n:p.n, x:p.x, y:p.y, stop:p.R*0.35, place:p}));
+  list.unshift({id:'bh', n:'Fekete lyuk (start)', x:0, y:0, stop:40*RS});
+  if (S.mission==='twin') list.unshift({id:'home', n:'Föld-kapu', x:S.home.x, y:S.home.y, stop:60});
+  return list; }
+function renderAlc(){
+  const v = ALC_SPEEDS[alcSpeedIdx];
+  document.getElementById('alcSpeeds').innerHTML = ALC_SPEEDS.map((s,i) => `<button type="button" class="mb${i===alcSpeedIdx?' on':''}" data-i="${i}"><b>${sci(s)} c</b></button>`).join('');
+  document.getElementById('alcSpeeds').querySelectorAll('button').forEach(b => b.onclick = () => { alcSpeedIdx = +b.dataset.i; renderAlc(); });
+  document.getElementById('alcList').innerHTML = alcTargets().map(tg => { const d = Math.max(0, Math.hypot(tg.x-S.x, tg.y-S.y) - tg.stop);
+    return `<button type="button" class="tgt" data-id="${tg.id}"><span>${tg.n}${tg.place && S.visited[tg.id] ? ' ✓' : ''}</span><span>${fmtLy(d)} · ${tfmt(d/(v*C))}</span></button>`; }).join('');
+  document.getElementById('alcList').querySelectorAll('button').forEach(b => b.onclick = () => engageAlc(b.dataset.id));
+  document.getElementById('alcFuel').textContent = `Egzotikus anyag: ${S.exotic} töltet`;
+}
+function openAlc(){ if (mode!=='play') return; if (S.inside){ toast('A 4D térben nem működik', 'vio'); return; }
+  if (S.alc){ // a leállás előre beprogramozott pontokon történik: a buborék falának belülről nem lehet jelet küldeni
+    const a = S.alc; if (!a.abort){ a.abort = true; a.left = Math.min(a.left, a.v*C*0.8); toast('Leállás a következő előre beprogramozott ponton', 'vio', 2.4); } return; }
+  alcEl.hidden = !alcEl.hidden; if (!alcEl.hidden){ sciEl.hidden = true; renderAlc(); } }
+function engageAlc(id){
+  if (S.exotic <= 0){ toast('Elfogyott az egzotikus anyag', 'danger', 2.4); return; }
+  const tg = alcTargets().find(t => t.id===id); if (!tg) return;
+  const dx = tg.x - S.x, dy = tg.y - S.y, d = Math.hypot(dx,dy), len = d - tg.stop;
+  if (len <= 0){ toast('Már ott vagy', ''); return; }
+  const v = ALC_SPEEDS[alcSpeedIdx];
+  S.exotic--; alcEl.hidden = true;
+  S.alc = {ux:dx/d, uy:dy/d, v, left:len, name:tg.n};
+  // a leállási pontokat indulás előtt kell beprogramozni – ezért lehet menet közben is megállni, de csak a következőnél
+  S.px = 0; S.py = 0; S.vx = 0; S.vy = 0; S.ang = Math.atan2(dy,dx); S.flash = 0.5;
+  toast(`Buborék aktív · ${sci(v)} c · cél: ${tg.n}. Kormányozni nem lehet, leállni a lila gombbal.`, 'vio', 3.5);
+}
+function stepAlc(dt){
+  const a = S.alc, step = Math.min(a.left, a.v*C*dt), ax0 = S.x, ay0 = S.y;
+  S.x += a.ux*step; S.y += a.uy*step; a.left -= step;
+  S.camx = S.x; S.camy = S.y;
+  S.tE += dt; S.tau += dt;            // a buborék belsejében nincs időtágulás: a hajóóra a földi idővel jár
+  S.gamma = 1; S.beta = 0; S.rate = 1; S.thrust = 0; S.dtc = dt; S.alcT = (S.alcT||0) + dt;
+  if (mode==='play') checkPlaces(ax0, ay0);
+  if (a.left <= 0.5){
+    S.alc = null; S.alcBlast = 1; S.blastAng = Math.atan2(a.uy, a.ux);
+    toast('Megérkeztél – a buborék elején felgyűlt részecskék gamma-villanásként csapódtak előre', 'vio', 4.5);
+  }
+}
+function drawAlcTop(t){
+  if (!S.alc && !(S.alcBlast>0)) return;
+  const [sx,sy] = toS(S.x,S.y), z = V.z;
+  if (S.alc){ const ux = S.alc.ux, uy = S.alc.uy, R = 380, w = 90, K = 160, G = 260, L = 2600;
+    const disp = (px,py) => { const rx = px - S.x, ry = py - S.y, r = Math.hypot(rx,ry), g = 1/(1+Math.exp(-(r-R)/w*2.2)); return [px - ux*K*g, py - uy*K*g]; };
+    ctx.lineWidth = 1;
+    for (let pass=0; pass<2; pass++){
+      const base = pass ? Math.floor((S.y - L)/G)*G : Math.floor((S.x - L)/G)*G;
+      for (let c = base; c < (pass ? S.y : S.x) + L; c += G){ let prev = null;
+        for (let u = -L; u <= L; u += 70){ const px = pass ? S.x + u : c, py = pass ? c : S.y + u;
+          const [qx,qy] = disp(px,py), P = toS(qx,qy), r = Math.hypot(px-S.x, py-S.y);
+          if (prev){ ctx.strokeStyle = `rgba(190,150,255,${clamp(0.55*(1 - r/L), 0, 0.55).toFixed(3)})`; ctx.beginPath(); ctx.moveTo(prev[0],prev[1]); ctx.lineTo(P[0],P[1]); ctx.stroke(); }
+          prev = P; } } }
+    const pulse = 0.5 + 0.5*Math.sin(t*0.01);
+    const gw = ctx.createRadialGradient(sx,sy,R*z*0.7,sx,sy,R*z*1.3); gw.addColorStop(0,'rgba(120,220,255,0)'); gw.addColorStop(0.5,`rgba(200,140,255,${(0.35+0.2*pulse).toFixed(2)})`); gw.addColorStop(1,'rgba(120,220,255,0)');
+    ctx.fillStyle = gw; ctx.beginPath(); ctx.arc(sx,sy,R*z*1.3,0,TAU); ctx.fill();
+    ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(220,200,255,0.9)';
+    ctx.fillText('elöl összehúzódó tér · hátul táguló tér', sx, sy + R*z*1.3 + 14); }
+  if (S.alcBlast>0){ const a = S.blastAng, L = 30000*z; ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createLinearGradient(sx,sy,sx+Math.cos(a)*L,sy+Math.sin(a)*L); g.addColorStop(0,`rgba(240,230,255,${(0.8*S.alcBlast).toFixed(3)})`); g.addColorStop(1,'rgba(200,160,255,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(sx+Math.cos(a-0.12)*L, sy+Math.sin(a-0.12)*L); ctx.lineTo(sx+Math.cos(a+0.12)*L, sy+Math.sin(a+0.12)*L); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over'; }
+}
+function drawAlcOverlay(t){
+  if (S.alc){ const g = ctx.createRadialGradient(W/2,H*0.44,Math.min(W,H)*0.25,W/2,H*0.44,Math.max(W,H)*0.75);
+    const p = 0.5 + 0.5*Math.sin(t*0.004);
+    g.addColorStop(0,'rgba(150,100,255,0)'); g.addColorStop(0.7,`rgba(170,110,255,${(0.12+0.06*p).toFixed(3)})`); g.addColorStop(1,`rgba(90,220,255,${(0.28+0.1*p).toFixed(3)})`);
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+    if (view==='cockpit'){ ctx.globalCompositeOperation = 'lighter';
+      for (let i=0;i<10;i++){ const s = ((t*0.0006) + i/10) % 1, rr = Math.max(W,H)*0.9*Math.pow(s,2.2) + 8;
+        ctx.strokeStyle = `rgba(200,160,255,${(0.35*(1-s)).toFixed(3)})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(W/2, H*0.44, rr, rr*0.55, 0, 0, TAU); ctx.stroke(); }
+      ctx.globalCompositeOperation = 'source-over'; } }
+  if (S.alcBlast>0 && view==='cockpit'){ const g = ctx.createRadialGradient(W/2,H*0.44,0,W/2,H*0.44,Math.max(W,H)*0.6);
+    g.addColorStop(0,`rgba(245,235,255,${(0.9*S.alcBlast).toFixed(3)})`); g.addColorStop(1,'rgba(200,160,255,0)'); ctx.fillStyle = g; ctx.fillRect(0,0,W,H); }
+}
+
+// ---- Autopilóta: állandó saját gyorsulás, félúton fordulás, pontos megállás ----
+const AP_A = 1100;
+function apTimes(d){ const q = 1 + AP_A*d/(2*C*C); return {tau:2*C/AP_A*Math.acosh(q), t:2*C/AP_A*Math.sqrt(q*q-1), gmax:q}; }
+function apTargets(){
+  const L = [{id:'bh', n:'Fekete lyuk', x:0, y:0, stop:30*RS, c:'#ffb04a'}];
+  if (S.mission==='twin') L.push({id:'home', n:'Föld-kapu', x:S.home.x, y:S.home.y, stop:0, c:'#78ffaa'});
+  for (const b of S.beacons) if (!b.got) L.push({id:'b'+b.id, n:`Jeladó ${b.id}`, x:b.x, y:b.y, stop:0, c:'#82c8ff'});
+  L.push({id:'psr', n:'Pulzár', x:S.psr.x, y:S.psr.y, stop:400, c:'#e6ecff'});
+  L.push({id:'gw', n:'Kettős lyuk', x:S.gw.x, y:S.gw.y, stop:3000, c:'#ffaa78'});
+  for (const p of PLACES) L.push({id:p.id, n:p.n, x:p.x, y:p.y, stop:p.R*0.35, c:S.visited[p.id] ? '#8f97ab' : '#ffe1aa', place:p});
+  return L; }
+function apControl(dt){
+  const a = S.ap, tx = a.x - S.x, ty = a.y - S.y, d = Math.hypot(tx,ty), s = Math.max(0, d - a.stop);
+  const ux = tx/(d||1), uy = ty/(d||1);
+  // a fékezéshez szükséges sebességprofil: s = (c²/a)(γ − 1)  →  γ_kívánt = 1 + a·s/c²
+  const gd = 1 + AP_A*0.97*s/(C*C), pd = C*Math.sqrt(gd*gd - 1);
+  const dpx = ux*pd - S.px, dpy = uy*pd - S.py, m = Math.hypot(dpx,dpy), mx = AP_A*dt;
+  const k = m > mx ? mx/m : 1; S.px += dpx*k; S.py += dpy*k;
+  if (m > mx*0.4){ S.ang = Math.atan2(dpy,dpx); S.thrust = AP_A; } else S.thrust = 0;
+  if (!a.flipped && (dpx*ux + dpy*uy) < 0 && m > mx*0.4 && Math.hypot(S.px,S.py) > C*0.5){ a.flipped = true; toast('Félút: a hajó megfordul, és ugyanakkora gyorsulással fékez', '', 2.6); }
+  if (s < 40 && Math.hypot(S.px,S.py) < 220){ S.px = 0; S.py = 0; S.ap = null; S.thrust = 0; if (d > 1) S.ang = Math.atan2(ty, tx);
+    toast(`Megérkeztél: ${a.n}`, '', 2.4); }
+}
+const mapEl = document.getElementById('map'), mapC = document.getElementById('mapC'), mctx = mapC.getContext('2d');
+let mapSel = null, mapHits = [];
+function openMap(){ if (mode!=='play') return; if (S.inside){ toast('A 4D térben nincs térkép', 'vio'); return; }
+  mapEl.hidden = !mapEl.hidden; if (!mapEl.hidden){ sciEl.hidden = true; alcEl.hidden = true; mapSel = null; drawMap(); updateApInfo(); } }
+function mapR(d, half){ const k = (half - 26)/9; return d < 1000 ? 12*d/1000 + 6 : 18 + k*Math.log10(d/1000); }
+function drawMap(){
+  if (mapEl.hidden) return;
+  const s = mapC.width, half = s/2; mctx.setTransform(1,0,0,1,0,0); mctx.clearRect(0,0,s,s);
+  mctx.fillStyle = 'rgba(4,5,10,0.6)'; mctx.beginPath(); mctx.arc(half,half,half-2,0,TAU); mctx.fill();
+  mctx.font = '500 17px "IBM Plex Mono", monospace'; mctx.textAlign = 'center';
+  for (const [d, lab] of [[900,'1 fénynap'],[LY,'1 fényév'],[1000*LY,'1000 fényév'],[1e6*LY,'1 millió fényév']]){ const r = mapR(d, half);
+    mctx.strokeStyle = 'rgba(233,237,246,0.12)'; mctx.lineWidth = 1.5; mctx.beginPath(); mctx.arc(half,half,r,0,TAU); mctx.stroke();
+    mctx.fillStyle = 'rgba(135,144,166,0.8)'; mctx.fillText(lab, half, half - r - 6); }
+  mapHits = [];
+  mctx.font = '500 19px "IBM Plex Mono", monospace';
+  for (const tg of apTargets()){ const dx = tg.x - S.x, dy = tg.y - S.y, d = Math.hypot(dx,dy), r = mapR(d, half), a = Math.atan2(dy,dx);
+    const x = half + Math.cos(a)*r, y = half + Math.sin(a)*r; mapHits.push({tg, x, y});
+    const sel = mapSel && mapSel.id===tg.id, isAp = S.ap && S.ap.id===tg.id;
+    mctx.fillStyle = tg.c; mctx.beginPath(); mctx.arc(x,y,sel?9:6,0,TAU); mctx.fill();
+    if (sel || isAp){ mctx.strokeStyle = isAp ? '#b48cff' : '#fff'; mctx.lineWidth = 2.5; mctx.beginPath(); mctx.arc(x,y,15,0,TAU); mctx.stroke(); }
+    if (tg.place || sel || tg.id==='bh'){ mctx.fillStyle = 'rgba(233,237,246,0.85)'; mctx.textAlign = x > half ? 'right' : 'left'; mctx.fillText(tg.n.split(' ')[0], x + (x > half ? -14 : 14), y + 6); } }
+  mctx.save(); mctx.translate(half,half); mctx.rotate(S.ang); mctx.fillStyle = '#e9edf6'; mctx.beginPath(); mctx.moveTo(12,0); mctx.lineTo(-8,-7); mctx.lineTo(-8,7); mctx.fill(); mctx.restore();
+}
+function updateApInfo(){
+  const el = document.getElementById('apInfo'), go = document.getElementById('apGo');
+  if (!mapSel){ el.textContent = S.ap ? `Autopilóta úton: ${S.ap.n}` : 'Koppints egy célra a térképen.'; go.disabled = true; go.textContent = 'Autopilóta indítása'; return; }
+  const d = Math.max(0, Math.hypot(mapSel.x - S.x, mapSel.y - S.y) - mapSel.stop), tm = apTimes(d);
+  el.innerHTML = `<b>${mapSel.n}</b> · ${fmtLy(d)}<br>Autopilótával a hajón <b>${tfmt(tm.tau)}</b>, a Földön <b>${tfmt(tm.t)}</b> · csúcs-γ ${sci(tm.gmax)}`;
+  go.disabled = false; go.textContent = `Indulás: ${mapSel.n}`;
+}
+mapC.addEventListener('click', e => { const rc = mapC.getBoundingClientRect(), sx = mapC.width/rc.width, x = (e.clientX - rc.left)*sx, y = (e.clientY - rc.top)*sx;
+  let best = null, bd = 44; for (const h of mapHits){ const dd = Math.hypot(h.x - x, h.y - y); if (dd < bd){ bd = dd; best = h.tg; } }
+  mapSel = best; drawMap(); updateApInfo(); });
+document.getElementById('apGo').addEventListener('click', () => { if (!mapSel) return; if (S.alc){ toast('A buborékban nem működik', 'danger'); return; }
+  S.ap = {id:mapSel.id, n:mapSel.n, x:mapSel.x, y:mapSel.y, stop:mapSel.stop, flipped:false}; mapEl.hidden = true;
+  const tm = apTimes(Math.hypot(mapSel.x-S.x, mapSel.y-S.y)); toast(`Autopilóta: ${mapSel.n} · kb. ${tfmt(tm.tau)} hajóidő. Bármely kormánymozdulat kikapcsolja.`, '', 3.4); });
+document.getElementById('mapX').addEventListener('click', () => { mapEl.hidden = true; });
+document.getElementById('radar').addEventListener('click', openMap);
+addEventListener('keydown', e => { if (e.code==='KeyM' && mode==='play') openMap(); });
+
+let frameU = 0;
+document.getElementById('bAlc').addEventListener('click', openAlc);
+{ const hudEl = document.getElementById('hud'); let full = false; try{ full = localStorage.getItem('eh-hud-full')==='1'; }catch(_){}
+  const setHud = f => { hudEl.classList.toggle('full', f); document.getElementById('hMore').textContent = f ? '▴ kevesebb' : '▾ részletek'; try{ localStorage.setItem('eh-hud-full', f?'1':'0'); }catch(_){} };
+  setHud(full); hudEl.addEventListener('click', () => setHud(!hudEl.classList.contains('full')));
+  hudEl.addEventListener('keydown', e => { if (e.key==='Enter'){ e.preventDefault(); hudEl.click(); } }); }
+document.getElementById('alcX').addEventListener('click', () => { alcEl.hidden = true; });
+addEventListener('keydown', e => { if (e.code==='KeyB' && mode==='play') openAlc(); });
+
+// ---- Képernyők ----
+const ov = $('ov'), card = $('card');
+function showMenu(){
+  card.innerHTML = `<div class="eyebrow">Relativisztikus pilótagyakorlat</div>
+  <h1>Esemény<span>horizont</span></h1>
+  <p>Egy fekete lyuk körül repülsz. Gyűjtsd be az öt jeladót. Minél gyorsabban mész, és minél közelebb kerülsz a lyukhoz, annál lassabban jár a hajó órája a Földhöz képest.</p>
+  <ul>
+    <li>Pilótafülkéből repülsz; a <b>NÉZET</b> gomb (vagy V) felülnézeti térképre vált.</li>
+    <li>Bal alul a <b>kormány</b> (fülkében: balra-jobbra fordít, térképen: arra fordul, amerre húzod). Jobb alul a <b>sebesség</b>: fel = gáz, le = fék.</li>
+    <li>A <b>warp</b> a fénysebesség felé tol, de c-t soha nem éred el.</li>
+    <li>A lyuk forog: az <b>ergoszférában</b> a FOTON gomb LEDOBÁS lesz – a forgás irányába repülve dobd hátra a rakományt, és energiát nyersz (Penrose-folyamat). Messze egy kettős lyuk spirálozik egymás felé: a detektor mutatja a gravitációs hullámait.</li>
+    <li><b>ALCUBIERRE</b>: térhajtómű – a téridő viszi a hajót, akár a fény tízmilliószorosával, időtágulás nélkül. Három töltet egzotikus anyagod van.</li>
+    <li><b>FOTON</b>: fényt lősz ki, a pályáját az általános relativitáselmélet egyenlete számolja. <b>TUDOMÁNY</b>: élő mérések, és a lyuk tömege is állítható. Keresd meg a pulzárt is.</li>
+    <li>Az eseményhorizonton túl egy <b>négydimenziós tér</b> vár. Ott a W-tengelyen is mozoghatsz: keresd meg a fehér lyukat, és kerüld el a szingularitást. Itt hat valódi elmélet játszható változata rejtőzik: féregjárat, Kerr-gyűrű, bébi-univerzum és mások.</li>
+  </ul>
+  <div class="modes"><button class="go" id="go" type="button">Jeladó-küldetés</button><button class="go alt" id="go2" type="button">Ikerparadoxon</button></div>
+  <p class="small">Ikerparadoxon: térj haza a Föld-kapuhoz úgy, hogy a Földön legalább 2 év teljen el, és négyszer annyi, mint neked. Eszközöd a sebesség, a lyuk mélye és minden, amit a lyukban találsz.</p>`;
+  ov.hidden = false; $('go').onclick = () => start('beacons'); $('go2').onclick = () => start('twin'); $('go').focus();
+}
+function start(m){ if (typeof m === 'string') mission = m; ensureAudio(); reset(); mode = 'play'; ov.hidden = true;
+  toast(mission==='twin' ? 'Ikerparadoxon · cél: Föld ≥ 2 év és ≥ 4× a hajóidő, aztán vissza a zöld kapuhoz' : 'Jeladók a radaron – kék pontok', '', 3.5); }
+function die(kind){ mode = 'dead'; S.dead = true;
+  for (let i=0;i<60;i++){ const a = Math.random()*TAU, v = 40+Math.random()*200; S.parts.push({x:S.x,y:S.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:1.2,c:'255,90,82'}); }
+  if (kind==='tidal') setTimeout(() => endCard('Spagettifikáció',
+    `Az árapályerő ${fmt(r0()/RS,1)} rs-nél meghaladta a hajótest tűrését. Egy ${MASSES[massIdx].n} tömegű lyuknál ez még a horizont előtt történik. Szupermasszív lyuknál, mint az Sgr A*, a horizonton is alig érezhető, ezért abba épségben át lehetne lépni.`), 900);
+  else setTimeout(() => endCard('A szingularitás elnyelt',
+    'A négydimenziós tér közepén ott a szingularitás. Ha a W-tengelyen is egy vonalba kerülsz vele, nincs kitérés.'), 900);
+}
+function win(){ mode = 'won';
+  endCard('Mind az öt jeladó megvan',
+    `Neked ${tfmt(S.tau)} telt el. A Földön ${tfmt(S.tE)}. ${tfmt(S.tE-S.tau)} különbséggel érsz haza az ikertestvéredhez képest.`); }
+function endCard(title, text){
+  card.innerHTML = `<div class="eyebrow">${mode==='won'?'Küldetés teljesítve':'Küldetés vége'}</div>
+  <h1>${title}</h1><p>${text}</p>
+  <div class="stats">
+    <span>Földi idő</span><span>${tfmt(S.tE)}</span>
+    <span>Hajóidő</span><span>${tfmt(S.tau)}</span>
+    <span>Legnagyobb γ</span><span>${fmt(S.gmax,2)}</span>
+    <span>Legközelebb a lyukhoz</span><span>${fmt(S.rmin/RS,2)} rs</span>
+    <span>Járt a 4D térben</span><span>${S.visits}×</span>
+    <span>Felfedezett elméletek</span><span>${thCount()} / ${TH_N}</span>
+    ${S.mission==='twin' ? `<span>Ikerarány</span><span>${isFinite(twinRatio()) ? fmt(twinRatio(),2)+'×' : '∞'}</span>` : `<span>Jeladók</span><span>${S.collected} / ${S.beacons.length}</span>`}
+    <span>Penrose-nyerés</span><span>${S.penrose}×</span>
+    <span>Felkeresett helyek</span><span>${Object.keys(S.visited).length} / ${PLACES.length}</span>
+  </div>
+  <div class="modes"><button class="go" id="go" type="button">Újra</button><button class="go alt" id="go2" type="button">Menü</button></div>`;
+  ov.hidden = false; $('go').onclick = () => start(); $('go2').onclick = showMenu; $('go').focus();
+}
+reset(); showMenu();
+
+let last = performance.now(), frame = 0;
+function loop(t){ const dt = Math.min(0.05, (t-last)/1000); last = t;
+  update(dt); draw(t); if ((frame++ & 1)===0){ hud(); drawRadar(); }
+  requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+})();
+</script>
+
+</body></html>
