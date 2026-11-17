@@ -20,6 +20,12 @@ A játék küldetésenként megjegyzi az öt legjobb (legrövidebb hajóidejű) 
 
 ## Változások
 
+### 1.6 – 2026. november 17.
+- Interstellar-szerű fekete lyuk valódi fénypálya-követéssel: a játék induláskor 1300 fénysugár pályáját számolja ki Schwarzschild-téridőben (u'' = 3Mu² − u), és minden képpontnál megkeresi, hol metszi a sugár a korong síkját. Így áll elő a filmből ismert kép: a korong túloldala a lyuk fölé és alá hajlik, a közeli oldal előtte halad el, a lyuk körül vékony fotongyűrű.
+- A korong fizikája: vékony korong a legbelső stabil pályától (6M) 20M-ig, differenciális (Kepler-) forgással; a gravitációs vöröseltolódás és a keringés Doppler-hatása színezi és fényesíti (a felénk keringő oldal sokkal fényesebb – a film ezt művészi okból kihagyta, itt benne van).
+- Felülnézetben ugyanez a számolás felülről nézve.
+- Filmes utómunka: ragyogás (bloom), anamorf lencsecsillanás, finom filmszemcse; halványabb jetek.
+
 ### 1.5 – 2026. november 17.
 - A féreglyuk-átkelés a film jelenete alapján újrarajzolva: belépéskor a tér összetörik (sötét szakadás izzó, töredezett peremmel, sugárirányú csillagcsíkok); a torokban sötét, üveges, hullámzó fal, átlátszó buborékgömbök, vibráló villámszerű repedés, kék lencsefoltok; kilépéskor újabb csíkok, meleg, tűzszerű fénykitörés és felfehéredés. Az átkelés 8 másodperc.
 

@@ -515,10 +515,11 @@ function draw(t){
   if (mode==='play' && !S.inside && r < 4*RS){ const q = (4*RS - r)/(3*RS); shx = (Math.random()-.5)*6*q; shy = (Math.random()-.5)*6*q; }
   V = {z, rot, cr:Math.cos(rot), sr:Math.sin(rot), cx:W/2+shx, cy:H*0.5+shy};
   ctx.globalCompositeOperation = 'source-over';
-  if (S.worm){ drawWormTransit(t); drawControls(t); return; }
+  if (S.worm){ drawWormTransit(t); filmGrain(); drawControls(t); return; }
   if (view==='cockpit'){ const rr = -(S.ang + Math.PI/2); V.rot = rr; V.cr = Math.cos(rr); V.sr = Math.sin(rr); drawCockpit(t); }
   else { if (S.inside) drawInside(t); else drawOutside(t); drawCommon(t); }
   if (S.alc || S.alcBlast>0) drawAlcOverlay(t);
+  filmGrain();
   drawControls(t);
 }
 
@@ -572,27 +573,8 @@ function drawOutside(t){
     if (sec){ ctx.fillStyle = `rgba(${rgb},${(al*0.55).toFixed(3)})`; ctx.fillRect(bx - nx*r2, by - ny*r2, sz, sz); }
   }
 
-  // fekete lyuk
-  const gr = RS*12*z + 1;
-  const glow = ctx.createRadialGradient(bx,by,shadowR*0.9, bx,by,gr);
-  glow.addColorStop(0,'rgba(255,170,80,0.22)'); glow.addColorStop(0.35,'rgba(255,110,40,0.07)'); glow.addColorStop(1,'rgba(255,90,30,0)');
-  ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(bx,by,gr,0,TAU); ctx.fill();
-  ctx.globalCompositeOperation = 'lighter';
-  for (const d of disk){
-    const q = (d.r - 3*RS)/(7*RS);
-    const beam = 0.55 + 0.45*Math.sin(d.a - t*0.0003);
-    ctx.strokeStyle = `rgba(255,${(238-150*q)|0},${(205-185*q)|0},${(d.b*beam*(1-q*0.6)*0.5).toFixed(3)})`;
-    ctx.lineWidth = Math.max(1, 3.2*z*(1-q*0.5));
-    ctx.beginPath(); ctx.arc(bx,by,d.r*z,d.a+V.rot,d.a+V.rot+d.len); ctx.stroke();
-  }
-  ctx.globalCompositeOperation = 'source-over';
-  ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(bx,by,shadowR,0,TAU); ctx.fill();
-  ctx.globalCompositeOperation = 'lighter';
-  ctx.strokeStyle = 'rgba(255,225,180,0.85)'; ctx.lineWidth = Math.max(1.2, 8.8*z);
-  ctx.beginPath(); ctx.arc(bx,by,shadowR,0,TAU); ctx.stroke();
-  ctx.strokeStyle = 'rgba(255,200,140,0.25)'; ctx.lineWidth = Math.max(3, 40*z);
-  ctx.beginPath(); ctx.arc(bx,by,shadowR*1.04,0,TAU); ctx.stroke();
-  ctx.globalCompositeOperation = 'source-over';
+  // fekete lyuk: fénypálya-követéssel számolt kép, felülről (lásd: Gargantua-renderelő lent)
+  bhDraw(BHC.top(), bx, by, (RS/2)*z, t, V.rot);
   ctx.setLineDash([4,5]); ctx.lineWidth = 1;
   ctx.strokeStyle = 'rgba(180,140,255,0.7)'; ctx.beginPath(); ctx.arc(bx,by,RS*z,0,TAU); ctx.stroke();
   ctx.strokeStyle = 'rgba(255,90,82,0.22)'; ctx.beginPath(); ctx.arc(bx,by,ISCO*z,0,TAU); ctx.stroke();
@@ -882,31 +864,8 @@ function drawCockpitInner(t){
   if (PB){
     const [bx,by,ba] = PB; const sc = f/(ba*Math.max(0.4,Db));
     const shPx = Math.max(1.5, Math.tan(Math.min(1.4,shA))*sc);
-    ctx.globalCompositeOperation = 'lighter';
-    const gl = ctx.createRadialGradient(bx,by,shPx*0.8,bx,by,shPx*4);
-    gl.addColorStop(0,'rgba(255,170,90,0.25)'); gl.addColorStop(1,'rgba(255,120,40,0)');
-    ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(bx,by,shPx*4,0,TAU); ctx.fill();
-    const lg = ctx.createLinearGradient(bx - shPx*4, 0, bx + shPx*4, 0);
-    lg.addColorStop(0,'rgba(215,235,255,0.95)'); lg.addColorStop(0.5,'rgba(255,215,160,0.75)'); lg.addColorStop(1,'rgba(255,120,60,0.35)');
-    ctx.strokeStyle = lg;
-    for (let k=0;k<7;k++){ const rr = shPx*(1.06 + k*0.16); ctx.lineWidth = Math.max(1, shPx*0.09*(1-k/8));
-      ctx.globalAlpha = 0.75*(1-k/8);
-      ctx.beginPath(); ctx.arc(bx,by,rr,Math.PI+0.18,TAU-0.18); ctx.stroke();
-      ctx.beginPath(); ctx.arc(bx,by,rr*0.92,0.3,Math.PI-0.3); ctx.stroke(); }
-    ctx.globalAlpha = 1;
-    ctx.globalCompositeOperation = 'source-over';
-    drawJets(t, bx, by, shPx);
-    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(bx,by,shPx,0,TAU); ctx.fill();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.strokeStyle = 'rgba(255,230,190,0.9)'; ctx.lineWidth = Math.max(1, shPx*0.03); ctx.beginPath(); ctx.arc(bx,by,shPx*1.01,0,TAU); ctx.stroke();
-    const outer = Math.tan(Math.min(1.4, Math.asin(Math.min(1, 10*RS/bd))))*sc;
-    const dg = ctx.createLinearGradient(bx - outer, 0, bx + outer, 0);
-    dg.addColorStop(0,'rgba(200,230,255,0)'); dg.addColorStop(0.3,'rgba(220,238,255,0.95)'); dg.addColorStop(0.5,'rgba(255,230,190,0.9)');
-    dg.addColorStop(0.7,'rgba(255,150,80,0.55)'); dg.addColorStop(1,'rgba(255,110,40,0)');
-    ctx.fillStyle = dg;
-    const th = Math.max(1.2, shPx*0.07);
-    ctx.beginPath(); ctx.ellipse(bx, by, outer, th, 0, 0, TAU); ctx.fill();
-    ctx.globalCompositeOperation = 'source-over';
+    // élből látva, mint a filmben: a korong túloldala a lyuk fölé és alá hajlik, a közeli oldal előtte halad el
+    bhDraw(BHC.edge(), bx, by, shPx/BH_BC, t, 0, () => drawJets(t, bx, by, shPx));
     ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(200,175,255,0.85)';
     ctx.fillText(`FEKETE LYUK · ${fmt(bd/RS)} rs`, bx, by + Math.max(shPx*1.9, 22));
   } else edgeMark(Math.atan2(bdy,bdx), 'LYUK', 'rgba(255,176,74,0.9)', hcy);
@@ -1613,6 +1572,102 @@ function stepCargo(dt){
       o.x += o.vx*sd; o.y += o.vy*sd; } }
   S.cargoObjs = S.cargoObjs.filter(o => !o.gone);
 }
+// ---- Gargantua-szerű fekete lyuk: valódi fénypálya-követés Schwarzschild-téridőben ----
+// Ugyanaz az elv, amit a Double Negative és Kip Thorne használt (James és mtsai, 2015): minden képponthoz visszafelé
+// követjük a fénysugarat. Mivel a pálya alakja csak az ütközési paramétertől (b) függ, 1300 pályát egyszer kiszámolunk
+// (u'' = 3Mu² − u), és minden képpontnál csak azt nézzük, hol metszi a sugár a korong síkját. Egység: M = 1, rs = 2.
+const BH_RIN = 6, BH_ROUT = 20, BH_NB = 1300, BH_DB = 0.025, BH_DPHI = 0.01, BH_NPHI = 1260, BH_BC = 3*Math.sqrt(3), BH_SPIN = 15;
+const BH = {U:null, END:null, CAP:null, TEX:null};
+function bhTrace(){
+  if (BH.U) return;
+  const U = new Float32Array(BH_NB*BH_NPHI), END = new Int16Array(BH_NB), CAP = new Uint8Array(BH_NB), h = BH_DPHI, f = u => 3*u*u - u;
+  for (let j=0;j<BH_NB;j++){ const b = (j + 0.5)*BH_DB, o = j*BH_NPHI; let u = 0, v = 1/b, k = 1, cap = 1;
+    for (; k<BH_NPHI; k++){
+      const k1u = v, k1v = f(u), k2u = v + 0.5*h*k1v, k2v = f(u + 0.5*h*k1u), k3u = v + 0.5*h*k2v, k3v = f(u + 0.5*h*k2u), k4u = v + h*k3v, k4v = f(u + h*k3u);
+      u += h/6*(k1u + 2*k2u + 2*k3u + k4u); v += h/6*(k1v + 2*k2v + 2*k3v + k4v);
+      if (u >= 0.5){ U[o+k] = 0.5; k++; break; }        // a horizont alá ért: árnyék
+      if (u <= 0){ cap = 0; break; }                      // kiszökött a végtelenbe
+      U[o+k] = u; }
+    END[j] = k; CAP[j] = cap; }
+  // a korong anyaga: sugárirányban sűrű, körben ritka hullámok – a differenciális forgás spirálcsíkokká nyírja őket
+  const NR = 256, NP = 512, TEX = new Float32Array(NR*NP); let sd = 4242; const rnd = () => (sd = (sd*16807) % 2147483647)/2147483647;
+  const W8 = []; for (let k=0;k<14;k++) W8.push([1 + Math.floor(rnd()*9), 6 + rnd()*40, rnd()*TAU, 0.3 + rnd()*0.7]);
+  for (let i=0;i<NR;i++) for (let k=0;k<NP;k++){ const ph = k/NP*TAU, rr = i/NR; let v = 0, n = 0; for (const [m, q, p0, a] of W8){ v += a*Math.sin(m*ph + q*rr + p0); n += a; }
+    TEX[i*NP + k] = 0.55 + 0.45*Math.pow(0.5 + 0.5*v/n, 1.6)*1.6; }
+  Object.assign(BH, {U, END, CAP, TEX, NR, NP});
+}
+function bhLookup(N, L, inc, gain = 1){
+  bhTrace();
+  const n = N*N, R = new Float32Array(n), AZ = new Float32Array(n), G = new Float32Array(n), F = new Float32Array(n), SH = new Uint8Array(n), OM = new Float32Array(n), RI = new Int32Array(n), BC = new Float32Array(n*3);
+  const ci = Math.cos(inc), si = Math.sin(inc);
+  for (let y=0;y<N;y++) for (let x=0;x<N;x++){ const i = y*N + x, al = (x + 0.5)/N*2*L - L, be = L - (y + 0.5)/N*2*L;
+    const b = Math.hypot(al, be), psi = Math.atan2(be, al), j = Math.min(BH_NB - 1, Math.floor(b/BH_DB)), sp = Math.sin(psi), cp = Math.cos(psi);
+    R[i] = -1; let ph = Math.atan2(-ci, sp*si); if (ph <= 0) ph += Math.PI;
+    for (let nn=0; nn<4; nn++, ph += Math.PI){ const kk = ph/BH_DPHI, k0 = Math.floor(kk); if (k0 + 1 >= BH.END[j]) break;
+      const u = BH.U[j*BH_NPHI + k0]*(1 - (kk - k0)) + BH.U[j*BH_NPHI + k0 + 1]*(kk - k0), r = 1/u;
+      if (r >= BH_RIN && r <= BH_ROUT){ const sf = Math.sin(ph), cf = Math.cos(ph);
+        R[i] = r; AZ[i] = Math.atan2(cf*si - sf*sp*ci, sf*cp);
+        // vöröseltolódás: gravitációs + a keringés Doppler-hatása (g = ν_megfigyelt/ν_kibocsátott)
+        G[i] = Math.sqrt(1 - 3/r)/(1 - Math.pow(r, -1.5)*al*si);
+        // vékony korong (Novikov–Thorne-szerű) sugárzási profilja; a magasabb rendű képek halványabbak
+        F[i] = (1 - Math.sqrt(BH_RIN/r))*Math.pow(BH_RIN/r, 2.2)*Math.pow(0.75, nn)*9*clamp((BH_ROUT - r)/5, 0, 1);
+        const g = G[i]; F[i] *= g*g*g*gain;   // a felénk keringő oldal fényesebb (relativisztikus nyalábolás), a távolodó halványabb
+        OM[i] = Math.pow(r, -1.5); RI[i] = Math.min(255, ((r - BH_RIN)/(BH_ROUT - BH_RIN)*256)|0) * 512;
+        const c = bhCol(clamp(g*Math.pow(BH_RIN/r, 0.75)*1.15, 0, 1.5)); BC[i*3] = c[0]; BC[i*3+1] = c[1]; BC[i*3+2] = c[2]; break; } }
+    SH[i] = (R[i] < 0 && (BH.CAP[j] || b < BH_BC)) ? 1 : 0; }
+  const mk = () => { const c = document.createElement('canvas'); c.width = c.height = N; return c; };
+  const shCv = mk(), sc = shCv.getContext('2d'), si2 = sc.createImageData(N, N);
+  for (let i=0;i<n;i++) si2.data[i*4 + 3] = SH[i] ? 255 : 0; sc.putImageData(si2, 0, 0);
+  const cv = mk(), cx = cv.getContext('2d'), img = cx.createImageData(N, N), bl = document.createElement('canvas'); bl.width = bl.height = Math.max(8, N/8|0);
+  return {N, L, inc, R, AZ, G, F, OM, RI, BC, shCv, cv, cx, img, bl, blx: bl.getContext('2d')};
+}
+const BHC = { _e:null, _t:null, edge(){ return this._e || (this._e = bhLookup(W < 700 ? 230 : 300, 26, 1.52)); }, top(){ return this._t || (this._t = bhLookup(W < 700 ? 200 : 260, 24, 0.03, 2.6)); } };
+// hőmérséklet → szín (a forró belső rész fehér, kifelé narancs; a felénk keringő oldal kékesebb)
+function bhCol(q){ const S0 = [[0,120,30,5],[0.35,255,115,35],[0.7,255,200,130],[1,255,244,228],[1.5,205,222,255]];
+  for (let k=1;k<S0.length;k++) if (q <= S0[k][0]){ const a = S0[k-1], b = S0[k], m = (q - a[0])/(b[0] - a[0]); return [a[1] + (b[1]-a[1])*m, a[2] + (b[2]-a[2])*m, a[3] + (b[3]-a[3])*m]; }
+  return [205,222,255]; }
+function bhDraw(C, bx, by, kpx, t, rot, mid){
+  const N = C.N, L = C.L, size = 2*L*kpx, x0 = bx - size/2, y0 = by - size/2;
+  if (bx + size < 0 || bx - size > W || by + size < 0 || by - size > H) return;
+  const d = C.img.data, TEX = BH.TEX, ts = t*0.001*BH_SPIN, R = C.R, AZ = C.AZ, F = C.F, OM = C.OM, RI = C.RI, BC = C.BC, K = 512/TAU;
+  // csak a képernyőn látszó képpontokat számoljuk (közelről a lyuk sokszor nagyobb a képernyőnél)
+  const px = size/N, pad = Math.ceil(size*0.3/px), ix0 = clamp(Math.floor(-x0/px) - pad, 0, N), ix1 = clamp(Math.ceil((W - x0)/px) + pad, 0, N), iy0 = clamp(Math.floor(-y0/px) - pad, 0, N), iy1 = clamp(Math.ceil((H - y0)/px) + pad, 0, N);
+  if (ix1 <= ix0 || iy1 <= iy0) return;
+  for (let y=iy0; y<iy1; y++) for (let x=ix0, i=y*N + ix0, o=i*4; x<ix1; x++, i++, o+=4){ if (R[i] < 0){ d[o] = d[o+1] = d[o+2] = 0; d[o+3] = 255; continue; }
+    const pk = ((((AZ[i] + rot - OM[i]*ts)*K)|0) % 512 + 512) % 512, e = Math.min(1.25, F[i]*TEX[RI[i] + pk]), j = i*3;
+    d[o] = BC[j]*e; d[o+1] = BC[j+1]*e; d[o+2] = BC[j+2]*e; d[o+3] = 255; }
+  C.cx.putImageData(C.img, 0, 0, ix0, iy0, ix1 - ix0, iy1 - iy0);
+  // nagyítva csak a látható részt rajzoljuk ki
+  const blit = (img, sc) => { const n = img.width, sz = size*sc, ox = bx - sz/2, oy = by - sz/2, k = n/sz;
+    const sx0 = clamp((-ox)*k, 0, n), sy0 = clamp((-oy)*k, 0, n), sx1 = clamp((W - ox)*k, 0, n), sy1 = clamp((H - oy)*k, 0, n);
+    if (sx1 - sx0 < 0.5 || sy1 - sy0 < 0.5) return; ctx.drawImage(img, sx0, sy0, sx1 - sx0, sy1 - sy0, ox + sx0/k, oy + sy0/k, (sx1 - sx0)/k, (sy1 - sy0)/k); };
+  ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  // halvány derengés a lyuk körül, aztán az árnyék
+  ctx.globalCompositeOperation = 'lighter';
+  const gl = ctx.createRadialGradient(bx, by, BH_BC*kpx, bx, by, size*0.6); gl.addColorStop(0, 'rgba(255,170,90,0.10)'); gl.addColorStop(1, 'rgba(255,120,40,0)');
+  ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(bx, by, size*0.6, 0, TAU); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over'; blit(C.shCv, 1);
+  if (mid) mid();
+  // a korong fénye, utána egy elmosott példány a ragyogáshoz (bloom)
+  ctx.globalCompositeOperation = 'lighter'; blit(C.cv, 1);
+  const bs = C.bl.width; C.blx.clearRect(0, 0, bs, bs); C.blx.drawImage(C.cv, 0, 0, bs, bs);
+  ctx.globalAlpha = 0.55; blit(C.bl, 1.12);
+  if (size < Math.max(W,H)*2){ ctx.globalAlpha = 0.25; blit(C.bl, 1.6); } ctx.globalAlpha = 1;
+  // fotongyűrű: a lyuk körül többször megkerülő fény vékony, éles gyűrűje (b = 3√3 M)
+  const rr = BH_BC*kpx*1.004, lg = ctx.createLinearGradient(bx - rr, 0, bx + rr, 0), sinI = Math.sin(C.inc);
+  lg.addColorStop(0, `rgba(255,${(150 + 60*(1 - sinI))|0},90,${(0.5 - 0.25*sinI).toFixed(2)})`); lg.addColorStop(1, `rgba(220,232,255,${(0.5 + 0.4*sinI).toFixed(2)})`);
+  ctx.strokeStyle = lg; ctx.lineWidth = clamp(kpx*0.12, 0.8, 2.5); ctx.beginPath(); ctx.arc(bx, by, rr, 0, TAU); ctx.stroke();
+  // anamorf lencsecsillanás – a filmkamera nyoma, a korong fényességével arányos
+  if (C.inc > 1 && size > 30){ const fa = clamp(size/W, 0.05, 0.6)*0.45, fl = ctx.createLinearGradient(0, by, W, by);
+    fl.addColorStop(0, 'rgba(120,170,255,0)'); fl.addColorStop(clamp(bx/W, 0.02, 0.98), `rgba(200,220,255,${fa.toFixed(3)})`); fl.addColorStop(1, 'rgba(120,170,255,0)');
+    ctx.fillStyle = fl; ctx.fillRect(0, by - Math.max(1, kpx*0.15), W, Math.max(2, kpx*0.3)); }
+  ctx.restore();
+}
+// filmszemcse: nagyon finom, minden képkockán máshol
+const GRAIN = (() => { const c = document.createElement('canvas'); c.width = c.height = 160; const g = c.getContext('2d'), im = g.createImageData(160, 160);
+  for (let i=0;i<160*160;i++){ const v = Math.random()*255; im.data[i*4] = im.data[i*4+1] = im.data[i*4+2] = v; im.data[i*4+3] = 255; } g.putImageData(im, 0, 0); return c; })();
+function filmGrain(){ const pat = ctx.createPattern(GRAIN, 'repeat'); if (!pat) return; ctx.save(); ctx.globalAlpha = 0.045; ctx.translate(Math.random()*160, Math.random()*160); ctx.fillStyle = pat; ctx.fillRect(-160, -160, W + 320, H + 320); ctx.restore(); }
+
 function drawErgoTop(t, bx, by){
   const z = V.z, er = ERGO*z, hr = RS*z;
   ctx.globalCompositeOperation = 'lighter';
@@ -1628,7 +1683,7 @@ function drawErgoTop(t, bx, by){
   for (const o of S.cargoObjs){ const [x,y] = toS(o.x,o.y); ctx.fillStyle = o.neg ? '#c9a8ff' : '#ffb04a'; ctx.fillRect(x-3,y-3,6,6); }
 }
 function drawJets(t, bx, by, shPx){
-  const power = [0.35, 0.6, 1][massIdx];
+  const power = [0.35, 0.6, 1][massIdx]*0.35;   // halványabb: a Sgr A*-nál erős jetet nem látunk, a film Gargantuájának sincs
   const jl = Math.min(H*1.1, shPx*45);
   ctx.globalCompositeOperation = 'lighter';
   for (const dir of [-1, 1]){
