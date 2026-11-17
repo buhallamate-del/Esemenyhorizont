@@ -292,6 +292,7 @@ function reset(){
         photons:[], pairs:[], fired:0, captured:0, psr:{x:-9000, y:12500}, psrPhase:0, psrFlash:0, theories:{}, visited:{}, ap:null, exotic:EXO_MAX, casimir:0, ending:false, gwCaught:null, gwMissed:null, gwWarned:false, alc:null, worm:null, wormTo:null, wormAsked:false, alcBlast:0, zn:null, anti:false, loop:false, cl:1,
         mission, home:{x:r0, y:0}, twinReady:false, cargo:mission==='penrose' ? PEN_CARGO : 3, cargoObjs:[], penrose:0, gw:newGW(), gwBuf:[], hw:0, gwA:0, gwOm:0, gwFlash:0 };
   if (mission!=='beacons'){ S.beacons = []; }
+  if (mission==='novikov') planNovikov();
   camAng = S.ang; setInsideUI(false);
 }
 
@@ -374,6 +375,149 @@ function stepOut(dt, input, dtp){
 }
 
 // ---- Szimuláció: a lyuk belseje, 4D tér ----
+const EGG_SRC = {loter:'data:image/jpeg;base64,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', raktar:'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAkGBwgHBgkIBwgKCgkLDRYPDQwMDRsUFRAWIB0iIiAdHx8kKDQsJCYxJx8fLT0tMTU3Ojo6Iys/RD84QzQ5Ojf/2wBDAQoKCg0MDRoPDxo3JR8lNzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzf/wAARCAEEAQQDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDlzc/7H60faf8AY/WunOkQhHc6HEFRtpJvzjOM461ClhbPe/Y10Iefs37TeMMLjOc/SvMWZf1p/meossm+33o537T/ALH60faf9j9a6mLRoppGji0SFmU4IGoH0z60NpFqtnHMdGUySsAkQvGJYHgHr60v7TX9W/zF/Zs/L7zlmnDKVaMEHqCaYdKs3+bycZ9GIrqJNItTcJZzaWbV5kcxzJdGTBUE9Oh6YIrEi5UfSuvC4v20rf1+BzYnCSopX/zKsmj2PlRusRycqw3nqO/5EVlFLPP/AB6n/v6a6WNd6vFnlhlfqP8A62RXMkc13HGLss/+fU/9/TRss/8An1P/AH9NNxRii4h2yz/59T/39NGyz/59T/39NNxRii4Dtln/AM+p/wC/pqxZ2dncl/8AR2Xbj/loaq4rR0ccy/QUAO/siz6+W3/fZo/siz/55N/32a0eOlGKFYbv1M7+yLP/AJ5N/wB9mj+yLP8A55N/32a0cUYpiM7+yLP/AJ5N/wB9mj+yLP8A55N/32a0cUYoAzv7Is/+eTf99mlGk2YOfKJ+rGtDFKiF3CjqT+VAF3TolS0VUUKoJwAKmmgaaMxoPmYgfrTrUq0I2/dBIX6CrVqP361LYyn/AGF/03/8do/sL/pv/wCOVuYoxWfMx2RiDQv+m/8A47ThoX/Tx/47W1iijmYWRjDQv+nj/wAdpJdI8iMyefnb229a2qgvv+PWT6f1pSk7MzrL93L0ZgyARDcQGPYHpmqjMWYsxJJ6k1bu/uCqdGH+E5cD/DfqFFFFbnYbFnq1iumT2s/nKzXDyqVhSQEMMAfMeD9KtLrWkrqY1ANeeY0PlOnlKQPlxkc89O9ZfiaEQ6ngFfmjVigRUKEjoQOM1k18tGlGa5u597GhCpHm7/qdJDqWkRm8bzLxZZ1CCaO3jUquOQADgZp0mt6e1vZBftPmWyouBEg3bT1D5yK5miq9hEv6tDqdUupWuoaxZfZkfciy75XRUL5U9l4/HvXLrnyxg4O0c1oeHf8AkMQ/7r/+gGqCfcX6Ct8PFRbS8v1PDzSCp1IxXb9WZj3twjMpK5BweKqVLdf8fMv+8air26cIxV0fP1Jyk7SYUUUVZAUUUUAFX9KRnaQK+3p2zVCtLR4ZJfN8plUjGc1M/h1Vy6bakrOxsWGmSXN61tJclSobcUUNyDitT/hGl/5/pf8Av2tV/DsbxamVdgT5LdBx1WumrnVODV7WN51qkXbmuYP/AAjS/wDP9L/37Wj/AIRpf+f6X/v2tb1FP2UOxPt6nc5y48PiGIuL2UkdjGtUZtOMcTOLlyR22Cup1D/j2b6isW7/AOPd/p/Wm6UORuwKvU5krmL5D/8APY/98itq2jC28Y4J2jJx1rMrVh/1Kf7orPC/Ey8TJtK48ADgDFS2v+vX8aiqa0/16/j/ACrrexyF+iiisigooooAKgvv+PV/wqeoL/8A49X/AApS2ZnW/hy9GYN1GZEChyvuBmqv2Nv+fhv++BV6TqKZXE9ysqk1Q07/AORU+xt/z8N/3wKKt0UrHpc8iAy6ITky6mSe/lx//FUnmaH/AM9NT/79x/8AxVZFFR9Xj3Z0/wBo4n+b8jX8zQ/+emp/9+4//iqPM0P/AJ6an/37j/8AiqyKKPYR7sP7RxP835G5b3+lWMhuLUX0k6qwRZVRVyQRyQSe9UFGFUewqlV0dB9KqNNQ2OerXqVnebuY11/x8y/7xqKpboH7TLwfvHtUVepH4UebLdhRRRVCCiiigArZ8Of8t/8AgP8AWsatLR5WiEpU4zipnNQjzMqnBzkoo6nRv+Qwf+uLfzWuhrl/Ds3maoSxGfJfn8Vrp9y/3l/OsYSUlc0qQcZcrFopNy/3l/Ojcv8AeX86ozINQ/49m+orEvP+Pd/w/nW1fsDbNgjqO9Yt5/x7v+FOXwMcfiRm1rRf6pP90Vk1rRf6pP8AdFYYbdm2I2Q6prT/AF6/j/KoamtP9ev411vY5i/RRRWRQUUUUAFV7/8A49W+oqxVfUP+PVvqKUtmZV/4UvRmNJ1FMp0nUU2uJlZZ/A+bCiiig9EwKKKKogKKKs2NqLp5A8nlpGhd227jjIHA/Gk2krsqMXJpLcrVdHQfSrf9ix74E+0T7pwDEPsx+YH05q62ieXHuaSfAByfI9Ov8VYvEU+5v9VrLeJlh1Awc/lXPH7x+tduvh4Ou8yTqpTfuMWAR/31We3hCQZJnmA4P/Hv69P4q2oYqjC/NNa+v+RlXw1SdlGL09Dl6K6RPCvmKWW5mwHKc22PmHUfeqU+DZQBm4mDFioX7Nzx1P3uldH17D/zfmYPBYhfZ/I5air+r6adOeIeb5iyBsZTaQVOCCKoV0wnGceaOxzzhKEnGS1QVoaS2PNH0rPq/pSKxlznoO+KJqTi1HcdNxUk5rQ0Q/7wNyAAR/L/AAp/mr70+1shdTCKPgkE5LHFXf8AhH5f+eif99NXFOhVk7uSOxVsPHRRZn+avvR5q+9aH/CPy/8APRP++mo/4R+X/non/fTVP1ap3Q/rFDs/wKcE6LMjNnAPpVy6uomgYAnP0pr6M1sUkdlZQ4BAY+tO1BIks5GKgYx0+tawpVIwaujOVSjKSdmUPNX3/KtiLmJD/siub82H+6//AH0f8a6SD/Ux46bR/Kqw8HFu7TJxE4SS5U16j6s2EUkk2Y42YDqQOlVqkeO3ljsVvZxBb/aWMjnPQKOOKrFVXSpuSJwtBV6qg3Y1vs0//PJ/yo+zT/8APJ/yrInfRrfWJJ4p457Z4GYRqD8smOgB/SnzyaTNa4imtY5DACu4EFXyCc4H1ry/7Qqae7+DPV/slaav7jU+zT/88X/Kj7PP/wA8n/KswX2nGG52G1jk8qMJ8pAY4O4fnihLvSZRLu+yoQItvykZ4+f9aX9oVf5Rf2T5v7jT+zT/APPF/wAqr31pcvbEJBIxyOAtUgdLSKZUurMu1wWViGIWM4wOnbnip3utI2Ooks9pmGVXd8yDGO316UnmFR6cv4Mmpk6lFxu9fIxtShmtghnikjz03LjNUPMX3/KtfV/sstrP9kZWh+0pjZkDOw5xWL5Seh/76NdFCnUrw51ZHFGlRwN6Lu7fqkx/mL7/AJUUzyk9D/30aK2+qVe6L+s0Oz/AoUVq0Vlzi5TKrQ0c7ftjFQwFuTg9D8y1LU9o8S+dHMzIksZTcq7tvIPTv0qKkrxaNaFo1YyeyaLl54knupLZ2tLVGtn3xlA3pjHXpTE8Q3AiVJYIZsb8s+4Fg3UHBFV/sth/z/S/+Ax/+KqQadZlN4vpCMZx9mOf/Qq4/ZwStb8z6BV8Fa1/zLmm3N/cW05trS3MEcIibc5UKMkjnPvT5bnUNOhkklgtXjPkplXJ6A7SMHvzUdnttrR0g1KQQyfMym2zn9aju7iC88zzdQfErKzbbTGSoIH8XvUum+bbT0Zl9YoOT1VvmN/4SB8BfsNttEpl2ksRuJye9KPEc42bbaAbGZh8znr17+9Vfsth/wA/0v8A4DH/AOKo+y2H/P8AS/8AgMf/AIqr9nDt+Zp7fBd/zM7xNM1xHYzMqhpPOYhRgDL1hV1100PkwQQM0ixBsuybcknPSq+B6CvRoYjkpqNv6ufOYqnGpXlKL0bOZq/pSBmk3FhwOhxWvgegpkigrjap571t9ZUvdcTBUXF3TNDQY4xqLshYgIcZOe4roax9BC+RbuqIrMJgSo64YYrYrVJLRIznJyd27hRRRTIIbz/UH6isTVziwk/D+dbd5/qD9RWHrH/HhJ9R/OqfwMF8SOePSurg/wBRH/uD+VcoeldXB/qI/wDcH8qxw+7Na2yH1Dq4LaZb7QTid+g/2RU1MuJ5oIGMEskZJGSjEZqsVBzpuxeCr+wrxqWuYWx/7jf98mjY/wDcb/vk1o/2jff8/tx/39aj+0b7/n9uP+/rV5PJI+i/tf8Aufj/AMAl0KaytUuWv7dpHKjygY888/8A1qbrUllNFZrp8Ui+XGVcGPB69Se5qM6lfYP+m3H/AH9NKNRvsf8AH7cf9/TWfsZc3MZ/2iub2nK/v8vQztj/ANxv++TRsf8AuN/3ya0f7Rvv+f24/wC/rU5NRvi3/H5cf9/TWnJIKudqnBzcNvP/AIBAsedFkDhl/wBKXHb+A1W+y8bm8xV9STWxbXAmkb7fL5oC/J5x3YPtmnvCtwBC/wB1iAR7Zr0MNTiqb5kmzwKmPliputG8U+l/kZdvbQOhJR256lzRW29nb2+EiiVVxnp1NFdKpw/lRDrT/mZzHm/9NB+dHm/9NB+db3/COXPliTzIdpGQeen5U/8A4Ri8zjzIM+mT/hXn+yo/8/D0frFT/n1/X3HPeb/00H50eb/00H510H/CNXfP7yHqR3+vpUF/olxYwGWVoioOPlz649KFRpPT2gniJr/l1/X3GN5v/TQfnTxcsBgTYH+9Umz6USL5RG8AZ5B9ar6tT/5+ErFy6U/6+4j+0vjHnHB7bqZ5uON4/OrcVxE0RgnIMfJRgOUP+HqKpm4QHBU5HtR9Xhe3P/X3l/WpKF3T6/10F83/AKaD86PN/wCmg/Ok+0x/3T+VH2mP+6fyp/VYfzmf1x/8+/6+4Xzf+mg/Ojzf+mg/Ok+0x/3T+VH2mP8Aun8qPqsP5w+uP/n3/X3C+b/00H50CbByJAD/AL1J9pj/ALp/KnJMj54xj1FH1aH841jJX0p/19w9LyWPHl3BXGSMN0ycmn/2jc/8/b/991Huj5ORmrllYyXqM8RQKpxlu5pxoKW1T+vvCWJcdXS/r7iv/aNz/wA/b/8AfdH9o3P/AD9v/wB91o/2Jcf3ovzP+FH9iXH96L8z/hV/VH/P/X3mf12P/Ptf18jNbULhhhrpiPd6jkuGkUrJNuU9i1a39iXH96L8z/hR/Ylx/ei/M/4UfVX/AD/194fXY/8APtf18jExF/sfnU4u5AABOQB0+atT+xLj+9F+Z/wo/sSf+J4sd8ULCW2n/X3j+vJ/8u1/XyM5Z7lhlXlYeo5pJJZ9v71pAv8AtcCti3XZCq7SuO2c1FqHNvj/AGhTeEdtZsSxqvpTX9fIxvN/6aD86PN/6aD86n2fSjZ9Kx+rQ/nNPrcv+ff9fcQebnjePzo80f3x+dTFeD0pQnHaj6vC/wAZf1uXJf2fX+uhB5v/AE0H51LbybpMbwePWnbPpUkKgHPf6UewgtVM48ZinLDzXJbQbcvtUENjn1qMXsoORcHI/wBqpp22rgnAJqJAH+4M/QU40Yy157f16mOW13HDL93ffX+kBv52OTcsf+B0VJ5Df7Iop+wX/Pz+vvO361/06/r7jpA1+owHfHpkemK0EMexC09yJAmSePv88fnXF04fcP1Fczp3Ot4py6HSGbUj1lk/MVW1KS5bT5Rcux+ZdoYjrnmsKiq5CZ4nmi48qLVlp9zfb/syK2z72XC/zrWXQ77YgMUZ44/eLTPDd39mS4xOkTsV+8wGRg561sx3rZXN2mz2kHT2ptGUIJq9zLOhXu0kwR/99rWI/hPWS7EW0eCT/wAtk/xrtLjU7WNSIb5VkJGQ8i9KrDWF3jdqMHXn96tCbH7JOO55zIjRyNG4wykqR6EU2pr5le9uGQgq0rEEdxk1DWpyhU9laTX1ytvbKGlbJALADgZPJqCtXwxOlvrUMssixqEcbmOACVOP1oew0rsl/wCEU1jn/R4+Ov79OP1qaLwprCghrZOTn/XJ/jXTHV0LFjqMGT1/erzVqPVbLygx1BfNC9RKuA1ZybsdCpqLumYOlaBqEWoPPcW8QRoyOJFPOf8A61akkLW7bGUKeuBirhlve8v/AI8KuwAyxIZI45H6MzEdeeK1hUlDR7GdbDX1TMOitk3FsGI+zDr7VR1AozxtGgQFeg+tbxqcztY5qlCUI3ZUooorQwCkb7p+hpaR/un6GmBl1Xvv9R+IqxVe+/1H/AhTq/Awp/EjPooorzTvEb7ppR0pG+6aWjqaP4F6v9Ap0f3qbTo/vH6UHFjP93l6D2ijkx5ihsdM08AKMKAAOwoWlqjHL/8Ad18/zCiiig7itTh/qz9R/Wm04f6tvqP61JcdxtFFFBIVfi/1a/QVQrQj/wBWv0FJjRVvLeaWXdGMjaPSsWQYkb610L26TyMWZhtUD5T9a56X/WN9TW3vWVxyceVpd1+TG0UUUjEKKKKACrdmGMEgQMTvX7oz61Uq9YJK9vKIgx+ZcgHHrRdrVF00nKzNBtU1eJjG19cArxjI4rotMvbuSxieW4dnK5JOMnmuIkmCSmNg24cnmuu0Vt2lwEd0/rVUU29UFdpLR/195pfarj/ns1MkkeQgyMWI4GaZRXSkkcTk3uwooopiCkf7p+hpaR/uN9DTAy6r3/8AqB/vCrFV7/8A1A/3hTq/Ax0/jRn0UUV5p3CP90/SlpG+6aWjqaP4F6v9Ap0fU02nx9TQcON/3eRKtLSLS1Rnl/8Au8fn+YUUUUHaVqcPuN9R/Wm04fcb6ipKjuNooooEFXC0axwGd3SHeokaP7wXviqdX4v9Un0FF7NMLXViSMaK0Qb+17uORlyQVPHB46etQppvh1gXfWZPlPzApy2Sen6VLCT5kvPpXNTf61/9412Oa5U7bnP7N+9rtYn1SC0t7xorG5NxCAP3hGOe9VaKKxk7u5aVlYKKKKkYVo6VaTXcUywJvZWUkZHv61nV0ng3g3f0X+tVGKm+VjU3D3kc1IT9smVhhk+Uj3FdvoX/ACCbf/c/rXCLI0t3cSPjc7knHrk13ehf8gi3/wBz+tbKKjOyMXJyV2XaKKK0MQooooAKR/uN9DS0j/cb6GmBl1Wv/wDUj/eqzVa//wBSP96nV+Bjp/GihRRRXmncNf7pp1I/3TS0dTR/w16v9Ap8fU0ynx9TQcOO/wB3l/XUlXpS0i9KWqIwH+7x+f5hRRRQdhWpw+434U2nD7jfhUlR3G0UUUCCr8X+qT6CqFaEIPlJx2FJjRLFFJlmEMrBhnKxswOPoK5eb/XP2+Y16PpU0i6XFGmpW0AS4Ehikn2MQCP068d687vCDeTkHIMjEH8a6ZfBEzX2/VfkyGiiisxBRRRQAVveF7iO1ju5ZiwTC5YKTjr19Kwa3NElWPQ9bDSIu+KNQrHljvHAHfvV02lJNikrqyMK2tLhrl0SGR3bLKqKSSM9cCu50aN4tMhjlRkdU5Vhgjn0qv4BvYYPEmL2aOFVtXXc7YBy1a8xQzzmOVZELtsdX3AjPHNdc4wupwd7o51zK8JK1iOiiipJCiiigApJPuN9DS02X/Vt9DTAzKrX/wDqR/vVZqtf/wCqX/ep1vgY6fxooUUUV5p3DX+6adSP900tHU0fwL1f6BT4+pplPj6mmcGO/wB3l/XUlXpS0g6UtMnA/wC7x/rqFFFFB2FWiocyd935Ubn9TWHOdP1aXcmoqHc/qaMyf7X5Uc4fVpdyartuf3K5P5ms396egf8AI1Pb3l9bAiB5EB9E/wARQ5XGsO11Qt5teUFZYxgYwWqMDgcVYOp6mQQZpcEYP7sf4VTxL/df/vk0k0jSVOUoqN0S4HoKMD0FRYmwTtfA6naaTMhGfmx64p85l9Wl3RNgegowPQVDmT/a/KjMn+1+VHOh/VpdybA9BSrH5ny+bHF3zI20VATIBn5vyrp7Lw9qEOlXNxDPYi9W6jSORb1CojKtuB7ZJx71cU56JESh7JptnPxW3mRhjd2qZ/heUA0cr8ocEDjKng1M2oalFNL/AKQxbdtZkCspI44OMGqs8888hkmZmc9TjFZpxibzpyqdSTc394/nRub+8fzqDL/7X5UZf/a/Kn7Qy+rS7on3N/eP50bm/vH86gzJ/tflRucdd35Uc4fVn3RPub+8fzo3N/eP51X3P6mlzJ6N+VHOH1Z90by/dH0qtqH+qX/eqOH7TNGJGlfJ+lRXwmjjUvIxBPfFehUqt0m+VnDChapy8yuQ0VX8w/3v1o8w/wB79a8/nR3fVpd0Tt0par+Yf7360eYf7360c6KdCXKldFipIu9VFZ2ICkknoByTVmGOZc+ZHIvpuQinGd2cGY0HHCyd+35oWUgEZIpgPoasrcX1uD9kMqqfvbY8/wBKglvbycnzXZz7xjP8qbkh5fQcsNB3/q42ioT5oPIf8qKnn8js+rvujbu/9RH/ALx/kKqVbu/9Qn+8f5Cqldlb42cNL4EFW7f/AFI+pqpVu3/1I+poofxEFX4GaFkeGHsP61ZqtZdD9B/M1ZrrlucqCiiipGPuv+QHqH/XJv5Vi2v/ACCIP94/zNbN1/yA9Q/65N/KsK0njbT4oQ37xSSRj3rGo9fka01p8x1FFFcxuFbfhYRlrm2lEYhZ0mJI53LlR+hNYlbnhVkW6uA8hQmMYwuc81pT+JET+FmbeI0KiIjA86U49Rng/kat6dqkdrb+VNAZMH5SMdPTmotdlQ6i8SyGRldmJK7eCFxWfU1Em7FQbtc3/wC3LX/nzb/x2j+3LX/nzb/x2sCis+RF8zN/+3LX/nzb/wAdo/ty1PWzb/x2sCijkQczN461ZsCDZEg9RhazrqazlObeGWJvTIK//WqlSjqK0p3hL3SJ+8tR9UdZ/wCPJvqP51eqOe1a9XyFK5YEjdnHAz/Su+r8DOSn8SOVooorhOsKKKKALuiO0esWToxV1mUqR2INdr4h1C7uvI+0XDybd2M446VxGj/8hS0/66iut1j70X0NaL4GcGY/wn/XUveH9RvLa3mWC4dFZwSBjnj6VemvrifJlkDk9zGufzxVTwzHp0kEovZp4mL8FVBGMd66i30HTLkZt755P91lz+VbQ+FEYX+DE4K8/wCPqT60V3UvgmykkZzc3IJ9Nv8AhRWqkjazPO7v/j3T/fP8hVSrd1/qE/3z/Kqlcdf+IzqpfAgq3bf6kfU1Uq3bf6kfU0Uf4iHV+BmhZdD9B/M1ZqpaOq53Mq8dzjvVjzY/+eif99CuqTVzlSdh9FM82P8A56J/30KPNj/56J/30KV0OzJrgZ0XUAP+eTfyrMhsIo/D9teBQJnkKtxz3/8ArVemu4ksJogVkeX5AoOetT6taf2doFpBM3795TI4z90kdK56ju3bobQVkr9TBoo3D1FG4eorA1Ct3woStxcsJlixGMlgMEZ561hbh6it/wAHIkt7cK+GHldDg55q4X5lYmfwu5F4pSI3UFwJklnkUh2QDoMY6Vi10Xi61igNpJEiRhkYEKoUE5Hp9a53r0onfmdwh8KCiiioKCiiigApR1FJSjqKqO6E9h9XNH3/ANop5bbW8uXBxn+A1TqeylME7SKQGWCUrn12GvQqO0WckNWcVRVma0YfNFlh6dx/jUPlSf8APN/++TXAmmdlhlFP8qT/AJ5v/wB8mjypP+eb/wDfJoEWtE/5C9p/10FdXrH3ovoa5CxWeO8heJHDq2V+U9a35HvXdftqSLgfLvjK/wBKpTXLY4cxi/Yt+n5mrpH+of8A3/6VfBIOQcH1FUNI/wCPdv8Afq9XRD4UZ4b+DEsfbbv/AJ+p/wDv63+NFV6Ko3MX7BNqEOyEqCj5O7Pp7A0z/hG73+/H+T//ABNdD4RAMlzkDoOtdJsU/wAK/lWNaKc9vxNITaVkedf8I5ef34vyf/4mnf2dNp6ATspLnjaD2+oFehFVAzhfypPKVsFo1PoCtTBcrul+P/AHKbkrNnAyaXPqEMLwMgCblO4N1znsDUP/AAjl5/fi/J//AImvRhGg4CKPooo2KP4V/KlJczu1+P8AwAjNxVkzzn/hG7z+/F+T/wDxNL/wjd7/AHovyf8A+Jr0Xav9wflRsXPCr+VLkXb8f+AV7SXc5Dw3o62N79ovyGVBmNURjlvU8dqteKbVtVjt1tiA6MxfcjAc4wBgV0mxc42qfoKXYv8AdX8qtaR5bfj/AMAhyblzXPOv+Ebvf78X5P8A/E0f8I5ef34vyf8A+Jr0XYv90flRtQ/wD8qjkXb8f+AX7WXc86/4Ru9/vx/k/wD8TW14V0+TSr6Wa7IZGi2jYjE5yD6V1RVc42D8hS7FI5Vfypxjyu6X4/8AAE5tqzZgeKbZdUsYIrb5ZopNx3RsBgg55A+lcsYGtT5MhBZOCRnH616RtXHKj8q4bXhjV7kD+9/QUqru+ZodN9DPooorI1CiiigApR1FJSjqKqPxIUtmPq5pMDSalbTAgJA+98qW46dB1qnW/wCEVDTXOQPur1+tehU+E447kGtaFZXgNxpwNvMT80flt5b+444rH/4Ry9/56R/k/wD8TXofljOQq+4x1pQqH+EcdsVxyipO/L+P/ANlOSVrnnf/AAjl7/z0j/J//iaP+Ecvf78f5P8A/E16NsX+6P8AvmjYv91fypci7fj/AMAr2ku559Z6Bdw3UMrPHtSRWPDnoc/3a1fF90lxNAEVhtU9VIzz2zXV7U/uj8q5Xxiu24t+AP3Z6D3p/DFpL8Thx8nKi2yppP8Ax7N/v1dqlpP/AB6n/fNXa3h8KDDfwYhRRRVG4/wj/rbj/dFdMcKM8/Qd65jwkcTXGBk7RgV0yqQcnlqmp8Q47AFJO5vyz0oOPU06gnA5rMY3B7E4pRgdT+tCnNLQA3HP/wBel9ufzpTk+opPYZoATGKOvQn86XH+z+tHSgAxjufzo+v86NoJzzS4I9aAGnj1/Ol496UcUmB3oAMfX864XXiDq90Qcjf/AEFd0AocYJ6155eHdcyN6s3/AKER/Ss6j2RrSW7IKKKKyNQooooAKUdRSUo61UfiQpbMfW94ULh7ry1DNtXgtt7/AENYNdD4PH726P8AsqP1r0Knws41uXootbjvmfzoJbU/8spGwy/RgtaUfnO372NU44ZZC39BU3SkrkUbdTS9xo64br9etOIwOpoIBHIpu4qfmOR6/wCNUIXHuTXKeMv+PqD/AK5/1rrM81xvjkkX1qQf+WR/nUz2OTG/wWM0n/j1/wCBmrlY2l6lFGvkT/ISch+3/wBatkHIyK1pyTWhpQi1Rj6BRRRVmp10VvDCSYYY489dqgZqSq32+y/5+4P+/go+32X/AD9wf9/BWpJZoqt9vsv+fuD/AL+Cj7fZf8/cH/fwUAWaKrfb7L/n7g/7+Cj+0LL/AJ+4P+/goAlmcqoCDLscL9fWnooVQvXA6nvVNb21MzPJcwrj5UDOBx3P41J9vsv+fuD/AL+CgCzRVb7fZf8AP3B/38FH2+y/5+4P+/goAs0VW+32X/P3B/38FH2+y/5+4P8Av4KALNFVvt9l/wA/cH/fwUfb7L/n7g/7+CgCZeJX+gNea65KLbVruAofkmfBB6gnI/nXoX220Em/7TDtIxu3jGfSuM8S6U99rE1zZzWjRSBTk3CjkDB4/CufEQbirG1GSTdzB+2L/cP50fbF/uH86tf8I/e/89LP/wAClo/4R+9/56Wf/gUtcns6nY6OeHcq/bF/uH86Pti/3D+dWv8AhH73/npZ/wDgUtH/AAj97/z0s/8AwKWj2dTsHPDuVfti/wBw/nU9lqKQ3kMhg8wK4JQ4w3tT/wDhH73/AJ6Wf/gUtOj0C8WRCZbPAYE/6UvrTUKl9g5odya6INzMVXapdsLjGOeldD4K+/d/Rf61z95/x9zEkHMjHIOQea3PCE8MDXXnSpHkLjewGetemcJ1tGKrfb7L/n7g/wC/go+32X/P3B/38FICzSYB6gflVf7fZf8AP3B/38FL9vs/+fuD/v4KBEskUci7XUEVx3i6Mi+jSUh18oYbGD1PX3966z7fZ/8AP3B/38FZWrWmnalMsrajHGyrt4dSDWdSLlGyMMTTlOnaO5xVxod39h+3wJ5tvkhtv3kx3I9Peq1jqU1phQd8X9wn+Rr0KwNrpdssVvfRTICSyM6g8/3fT6Vj67oemX6G6025t7ec8mNnCq/4fwn9K55YeSXNHc7MNPlpxhPsYv8Ab6f8+7f990VB/wAI/e/89LP/AMCloqL1v6Rvakelf2VZ/wDPFP8AvkUDSrL/AJ4J/wB8iiiu25xB/ZVmD/qE/wC+RS/2XZf8+8f/AHyKKKLgNbSbI/8ALFfyFNGlWa/8sVP1Uf4UUUXAkbTLRuWhUn1IFN/suz/54J/3yKKKLgL/AGTZ/wDPFf8Avkf4Uf2XZ/8APBP++RRRQAv9l2X/ADwT/vkUv9lWXXyE/wC+RRRRcBjaXZk/6hB9FFH9lWeP9Sv5CiilcBw0y027fKXbnOMDrSHSrL/ngn/fIoopgJ/ZVl/zwT/vkUo0qyz/AKhP++RRRQAv9l2Y/wCWCf8AfIpDpdkf+WCf98iiii4AdJsiP9Sv5CkGl2YP+pT/AL5H+FFFFwM2XwzYNK53TjJzgOP8KmstAsrfftDvux98g4/Siii4FxdKsz1hX/vkUv8AZNln/UL+QoopXAbJpFiww1uhH0FV28LaZMc7Zo/9yUiiilLYzqJNalGXwrYqxAnu/wDv7/8AWqF/DVmOk93/AN/f/rUUVzM82W43/hHLT/nvdf8Afz/61IPDdmOk11/38/8ArUUUrkB/wjlp/wA9rr/v5/8AWoooouM//9k='};
+// ---- Titkos bébi-univerzumok (easter egg): a szerző két másik játéka, saját buborékuniverzumban ----
+// Nincsenek a radaron: csak az találja meg őket, aki a 4D térben messzebbre és mélyebbre merészkedik a W-tengelyen.
+const EGGS = [
+  {id:'loter', n:'Kísérleti Lőtér', col:'255,150,70', url:'https://buhallamate-del.github.io/Kiserleti_robbantas/',
+   p:'Ebben a buboréknak más a fizikája: 1957 van, és egy hidegháborús rakétaprogramot vezetsz. Tervezz, indíts, tartsd egyensúlyban a keretet – és döntsd el, mire jó az egész. Ugyanaz a szerző építette, mint ezt a játékot.'},
+  {id:'raktar', n:'Raktár 3D', col:'120,220,150', url:'https://github.com/buhallamate-del/raktar-3d',
+   p:'Egy bejárható, háromdimenziós raktár – mind a 976 tárhelyével, éjszakai sötétséggel és komissiózás időre. Ebben az univerzumban a szingularitás helyett a polcok közt kell utat találni. Ugyanaz a szerző építette, mint ezt a játékot.'}];
+const EGG_IMG = {}; for (const e of EGGS){ const im = new Image(); im.src = EGG_SRC[e.id]; EGG_IMG[e.id] = im; }
+function eggStep(){
+  if (!S.eggs) return;
+  for (const e of S.eggs){ if (Math.hypot(S.x - e.x, S.y - e.y, (S.w - e.w)*1.2) > e.R) continue;
+    if (!S.eggSeen) S.eggSeen = {}; if (S.eggSeen[e.id]) continue; S.eggSeen[e.id] = true;
+    let found = {}; try{ found = JSON.parse(localStorage.getItem('eh-eggs') || '{}') || {}; }catch(_){} found[e.id] = 1; try{ localStorage.setItem('eh-eggs', JSON.stringify(found)); }catch(_){}
+    const n = Object.keys(found).length;
+    document.getElementById('discTag').textContent = `Titkos bébi-univerzum · ${n}/${EGGS.length} megtalálva`;
+    document.getElementById('discT').textContent = e.n;
+    document.getElementById('discP').innerHTML = `${e.p} <a href="${e.url}" target="_blank" rel="noopener" style="color:#ffd59a">Átlépés ebbe az univerzumba ↗</a>`;
+    discEl.hidden = false; discTimer = 18; toast(`Egy másik univerzum: ${e.n}`, 'vio', 3); }
+}
+function drawEggBubble(e, x, y, rp, t, al){
+  const im = EGG_IMG[e.id]; if (rp < 2 || al <= 0.01) return;
+  ctx.save(); ctx.globalAlpha = al;
+  ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createRadialGradient(x, y, rp*0.9, x, y, rp*1.8); g.addColorStop(0, `rgba(${e.col},0.25)`); g.addColorStop(1, `rgba(${e.col},0)`);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, rp*1.8, 0, TAU); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.beginPath(); ctx.arc(x, y, rp, 0, TAU); ctx.save(); ctx.clip();
+  // a buborékban a másik univerzum képe: lassan lélegzik és forog, a széle felé sötétül, mint egy üveggömbben
+  const k = 1.15 + 0.05*Math.sin(t*0.0008), sz = rp*2*k;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(Math.sin(t*0.0003)*0.08); if (im.complete && im.naturalWidth) ctx.drawImage(im, -sz/2, -sz/2, sz, sz); else { ctx.fillStyle = `rgba(${e.col},0.4)`; ctx.fillRect(-rp, -rp, rp*2, rp*2); }
+  ctx.restore();
+  const v = ctx.createRadialGradient(x, y, rp*0.45, x, y, rp); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.6)'); ctx.fillStyle = v; ctx.fillRect(x - rp, y - rp, rp*2, rp*2);
+  ctx.restore();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = `rgba(${e.col},0.8)`; ctx.lineWidth = Math.max(1, rp*0.025); ctx.beginPath(); ctx.arc(x, y, rp, 0, TAU); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = Math.max(1, rp*0.04); ctx.beginPath(); ctx.arc(x, y, rp*0.86, Math.PI*1.1, Math.PI*1.45); ctx.stroke();
+  ctx.restore();
+}
+function drawEggsTop(t){
+  if (!S.eggs) return; const z = V.z;
+  for (const e of S.eggs){ const dw = Math.abs(S.w - e.w); if (dw > e.R*1.6) continue; const vis = clamp(1 - dw/(e.R*1.6), 0, 1), [x,y] = toS(e.x, e.y), rp = e.R*z*Math.sqrt(Math.max(0.05, 1 - (dw/(e.R*1.6))**2));
+    if (x < -rp*2 || x > W + rp*2 || y < -rp*2 || y > H + rp*2) continue;
+    drawEggBubble(e, x, y, rp, t, vis);
+    if (vis > 0.4){ ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = `rgba(${e.col},${(0.9*vis).toFixed(2)})`; ctx.fillText((S.eggSeen && S.eggSeen[e.id]) ? e.n.toUpperCase() : 'EGY MÁSIK UNIVERZUM?', x, y - rp*1.3 - 8); } }
+}
+function drawEggsCockpit(t, f, p3, fx, fy){
+  if (!S.eggs) return;
+  for (const e of S.eggs){ const dw = Math.abs(S.w - e.w); if (dw > e.R*1.6) continue; const vis = clamp(1 - dw/(e.R*1.6), 0, 1), P = p3(e.x, e.y, (e.w - S.w)*0.3); if (!P) continue;
+    const a = (e.x - S.x)*fx + (e.y - S.y)*fy, rp = f*e.R/a*Math.sqrt(Math.max(0.05, 1 - (dw/(e.R*1.6))**2)); if (rp > Math.max(W,H)*1.5) continue;
+    drawEggBubble(e, P[0], P[1], Math.max(3, rp), t, vis);
+    if (vis > 0.4 && rp > 8){ ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = `rgba(${e.col},${(0.9*vis).toFixed(2)})`; ctx.fillText((S.eggSeen && S.eggSeen[e.id]) ? e.n.toUpperCase() : 'EGY MÁSIK UNIVERZUM?', P[0], P[1] - rp*1.3 - 10); } }
+}
+
+// ---- Tesszerakt: ahol hátulról látod önmagad, és üzenhetsz a múltba ----
+// A 4D tér egyik zugában az idő is térszerű irányként látszik: a saját, néhány másodperccel korábbi helyzeteidet látod,
+// egymás mögött, mint egy végtelen folyosóban. (Az Interstellar tesszeraktja ihlette; a zárt időszerű görbék létezését
+// az általános relativitáselmélet egyes megoldásai megengedik – Gödel 1949, a Kerr-gyűrű belseje –, de a valóságban nem ismerünk ilyet.)
+const TESS_D = [2, 4, 6, 8, 10];
+function planNovikov(){ const a = Math.random()*TAU, d = 1800 + Math.random()*700, w = (Math.random()<.5?-1:1)*(380+Math.random()*320);
+  S.whPlan = {x:Math.cos(a)*d, y:Math.sin(a)*d, w};
+  // a jel a kijárat irányát kódolja: 8 égtáj (3 jel) + a W előjele (1 jel); a térképen fent van az észak
+  const k = (Math.round(Math.atan2(-S.whPlan.y, S.whPlan.x)/(Math.PI/4)) % 8 + 8) % 8, names = ['K','ÉK','É','ÉNy','Ny','DNy','D','DK'];
+  S.code = [4,2,1].map(b => (k & b) ? '–' : '·').join('') + (w > 0 ? '–' : '·'); S.codeMean = `${names[k]}, ${w > 0 ? '+' : '−'}W`;
+  S.msg = ''; S.loopClosed = false; S.tessSeen = false; }
+const whHidden = () => S.mission==='novikov' && !S.loopClosed && !S.tessSeen;
+const tessD = () => { const T = S.zn && S.zn.tess; return T ? Math.hypot(S.x - T.x, S.y - T.y, (S.w - T.w)*1.4) : Infinity; };
+const inTess = () => mode==='play' && S.inside && tessD() < S.zn.tess.R;
+function tessStep(dt){
+  if (!S.hist) S.hist = []; const h = S.hist, last = h[h.length - 1];
+  if (!last || S.tIn - last.t > 1/30) h.push({t:S.tIn, x:S.x, y:S.y, w:S.w, a:S.ang});
+  while (h.length && S.tIn - h[0].t > 11) h.shift();
+  if (S.ripples) for (const r of S.ripples) r.t += dt; if (S.ripples) S.ripples = S.ripples.filter(r => r.t < 2.2);
+  if (inTess()){ if (!S.tessSeen){ S.tessSeen = true; phenom('self'); if (S.mission==='novikov') toast('A tesszeraktban látod a kijáratot is. Küldd vissza a jelet: FOTON röviden = ·, hosszan = –', 'vio', 6); } }
+}
+function ghostAt(delay){ const h = S.hist; if (!h || !h.length) return null; const tt = S.tIn - delay; if (h[0].t > tt) return null;
+  let lo = 0, hi = h.length - 1; while (hi - lo > 1){ const m = (lo + hi) >> 1; if (h[m].t < tt) lo = m; else hi = m; } return h[lo]; }
+let pulseT0 = null;
+function pulseDown(){ if (!inTess()) return false; pulseT0 = performance.now(); return true; }
+function pulseUp(){ if (pulseT0 == null) return; const d = performance.now() - pulseT0; pulseT0 = null; if (inTess()) sendSym(d < 280 ? '·' : '–'); }
+function sendSym(sym){
+  S.msg = (S.msg || '') + sym; if (!S.ripples) S.ripples = []; S.ripples.push({t:0, x:S.x, y:S.y, w:S.w, sym});
+  if (S.mission !== 'novikov'){ toast(`Üzenet a múltba: ${S.msg}`, 'vio', 1.6); if (S.msg.length >= 6) S.msg = ''; return; }
+  if (S.loopClosed) return;
+  if (!S.code.startsWith(S.msg)){ toast(`A jel eltér (${S.msg}) – a hurok nem zárul. Kezdd újra: ${S.code}`, 'danger', 3); S.msg = ''; return; }
+  if (S.msg === S.code){ S.loopClosed = true; toast(`Bezárult a hurok · a múltbeli önmagad megkapta: ${S.code}`, 'vio', 4);
+    if (discEl.hidden || true){ document.getElementById('discTag').textContent = 'Időhurok · Novikov önkonzisztencia-elve';
+      document.getElementById('discT').textContent = 'A jel tőled jött';
+      document.getElementById('discP').textContent = `Amit az út elején kaptál, azt most te küldted vissza. A jel jelentése: a kijárat ${S.codeMean} irányban van – ezért láthatod most a fehér lyukat. Ha egy időhurok lehetséges, csak önmagával összhangban lévő történet valósulhat meg benne: nincs nagyapa-paradoxon. Az üzenetnek nincs „első” szerzője – ez a bootstrap-paradoxon, amely nem ellentmondás, csak furcsa.`;
+      discEl.hidden = false; discTimer = 16; } }
+  else toast(`Küldve: ${S.msg}`, 'vio', 1.4);
+}
+// a hajó sziluettje hátulról: két hajtómű, szárnyél, halvány fényudvar
+function drawShipBack(x, y, sc, al, hue){
+  ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createRadialGradient(x, y, 0, x, y, sc*2.4); g.addColorStop(0, `rgba(${hue},${(0.25*al).toFixed(3)})`); g.addColorStop(1, `rgba(${hue},0)`);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, sc*2.4, 0, TAU); ctx.fill();
+  ctx.strokeStyle = `rgba(235,240,255,${(0.85*al).toFixed(3)})`; ctx.lineWidth = Math.max(1, sc*0.08); ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(x - sc*1.3, y + sc*0.25); ctx.lineTo(x, y - sc*0.55); ctx.lineTo(x + sc*1.3, y + sc*0.25); ctx.lineTo(x + sc*0.35, y + sc*0.15); ctx.lineTo(x, y + sc*0.35); ctx.lineTo(x - sc*0.35, y + sc*0.15); ctx.closePath(); ctx.stroke();
+  for (const sx of [-0.32, 0.32]){ const e = ctx.createRadialGradient(x + sx*sc, y + sc*0.2, 0, x + sx*sc, y + sc*0.2, sc*0.32);
+    e.addColorStop(0, `rgba(255,220,160,${(0.95*al).toFixed(3)})`); e.addColorStop(1, 'rgba(255,140,60,0)'); ctx.fillStyle = e; ctx.beginPath(); ctx.arc(x + sx*sc, y + sc*0.2, sc*0.32, 0, TAU); ctx.fill(); }
+  ctx.globalCompositeOperation = 'source-over';
+}
+function drawTessTop(t){
+  const T = S.zn && S.zn.tess; if (!T) return; const z = V.z, [x,y] = toS(T.x, T.y), dw = Math.abs(S.w - T.w), vis = clamp(1 - dw/(T.R*0.9), 0.25, 1);
+  ctx.save(); ctx.translate(x, y); ctx.rotate(t*0.00005);
+  for (let k=0;k<6;k++){ const s0 = T.R*z*(0.25 + k*0.16); ctx.strokeStyle = `rgba(255,205,120,${(0.4*vis*(1 - k/7)).toFixed(3)})`; ctx.lineWidth = 1; ctx.strokeRect(-s0, -s0, s0*2, s0*2); }
+  ctx.restore();
+  ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = `rgba(255,215,150,${(0.9*vis).toFixed(3)})`;
+  ctx.fillText(`TESSZERAKT · ${dw < T.R*0.7 ? 'itt az idő is irány' : `W ${Math.round(T.w)}`}`, x, y - T.R*z - 8);
+  if (inTess() || tessD() < T.R*1.8){
+    TESS_D.forEach((dl, i) => { const g = ghostAt(dl); if (!g || Math.abs(g.w - S.w) > 300) return; const [gx, gy] = toS(g.x, g.y), al = (1 - i/TESS_D.length)*0.85;
+      ctx.save(); ctx.translate(gx, gy); ctx.rotate(g.a); ctx.strokeStyle = `rgba(255,220,170,${al.toFixed(3)})`; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(-7, -6); ctx.lineTo(-4, 0); ctx.lineTo(-7, 6); ctx.closePath(); ctx.stroke(); ctx.restore();
+      if (i === 0){ ctx.fillStyle = `rgba(255,220,170,${al.toFixed(3)})`; ctx.fillText(`TE · ${dl} mp-cel ezelőtt`, gx, gy - 14); } });
+    for (const r of (S.ripples || [])){ const [rx, ry] = toS(r.x, r.y); ctx.strokeStyle = `rgba(255,215,150,${(0.7*(1 - r.t/2.2)).toFixed(3)})`; ctx.lineWidth = r.sym==='–' ? 2.4 : 1.2; ctx.beginPath(); ctx.arc(rx, ry, 10 + r.t*170*z*2, 0, TAU); ctx.stroke(); }
+  }
+}
+function drawTessCockpit(t, f, hcx, hcy, p3, fx, fy){
+  const T = S.zn && S.zn.tess; if (!T) return; const d = tessD(), near = clamp((T.R*2.2 - d)/(T.R*1.4), 0, 1);
+  if (near <= 0){ const P = p3(T.x, T.y, 0); if (P){ ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,215,150,0.8)'; ctx.fillText('TESSZERAKT', P[0], P[1] - 14); ctx.strokeStyle = 'rgba(255,205,120,0.6)'; ctx.strokeRect(P[0]-5, P[1]-5, 10, 10); } return; }
+  // végtelen folyosó: egymásba nyíló keretek a haladási irányban (mint a film tesszeraktjának polcai)
+  ctx.globalCompositeOperation = 'lighter';
+  const M = Math.max(W,H), drift = (t*0.00012) % 1;
+  for (let k=0;k<14;k++){ const zz = ((k/14 + drift) % 1) + 0.05, sw = M*0.06/zz, sh = sw*0.62, al = clamp((1 - zz)*0.5, 0, 0.4)*near;
+    ctx.strokeStyle = `rgba(255,200,120,${al.toFixed(3)})`; ctx.lineWidth = 1; ctx.strokeRect(hcx - sw, hcy - sh, sw*2, sh*2);
+    ctx.strokeStyle = `rgba(255,220,170,${(al*0.4).toFixed(3)})`; for (let q=-3;q<=3;q++){ ctx.beginPath(); ctx.moveTo(hcx + q*sw/3.5, hcy - sh); ctx.lineTo(hcx + q*sw/3.5, hcy + sh); ctx.stroke(); } }
+  ctx.globalCompositeOperation = 'source-over';
+  // önmagad, hátulról: a néhány másodperccel korábbi helyzeteid
+  // a tér itt önmagába záródik: a néhány másodperccel korábbi önmagad előtted halad, ugyanazon a pályán – ezért hátulról látod
+  TESS_D.forEach((dl, i) => { const g0 = ghostAt(dl); if (!g0) return; const g = {x:2*S.x - g0.x + fx*150*(i + 1), y:2*S.y - g0.y + fy*150*(i + 1), w:g0.w, a:g0.a};
+    const dw = Math.abs(g.w - S.w); if (dw > 320) return;
+    const P = p3(g.x, g.y, (g.w - S.w)*0.4); if (!P) return; const a = (g.x - S.x)*fx + (g.y - S.y)*fy, sc = clamp(f*22/a, 3, 80), al = near*(1 - i/TESS_D.length)*(1 - dw/320);
+    drawShipBack(P[0], P[1], sc, al, '255,200,130');
+    if (i === 0 && sc > 6){ ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = `rgba(255,220,170,${(0.9*al).toFixed(3)})`; ctx.fillText(`TE · ${dl} mp-cel ezelőtt`, P[0], P[1] - sc*1.3 - 8); } });
+  // a jelek: hullámként futnak előre, a múltbeli éned felé
+  for (const r of (S.ripples || [])){ const R = (r.t/2.2)*M*0.6, al = 0.6*(1 - r.t/2.2)*near; ctx.strokeStyle = `rgba(255,215,150,${al.toFixed(3)})`; ctx.lineWidth = r.sym==='–' ? 4 : 1.6;
+    ctx.beginPath(); ctx.ellipse(hcx, hcy, R, R*0.62, 0, 0, TAU); ctx.stroke(); }
+  if (inTess()){ ctx.font = '500 11px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,225,180,0.9)';
+    const line = S.mission==='novikov' ? (S.loopClosed ? `A hurok bezárult · ${S.code}` : `Küldd vissza: ${S.code} · eddig: ${S.msg || '–'} · FOTON röviden = · , hosszan = –`) : 'Üzenhetsz a múltbeli önmagadnak: FOTON röviden = · , hosszan = –';
+    ctx.fillText(line, hcx, hcy + Math.min(H*0.22, 150)); }
+}
+
 // ---- Zuhanás a lyukba: lassított átmenet a horizonton át a 4D térbe ----
 // Fizikailag: egy ekkora (szupernagy tömegű) lyuknál a horizonton az árapály még elviselhető, és helyben semmi különös nem
 // történik – nincs fal, nincs villanás. A kívülről nézett „örökké lassuló, vörösödő” hajó a távoli megfigyelő képe, nem a pilótáé.
@@ -436,7 +580,8 @@ function enterInside(){
   S.inside = true; S.visits++; S.enterT = S.tE; S.flash = 0; S.fadeIn = 1;
   S.x = 0; S.y = 1100; S.w = 0; S.px = 180; S.py = 0; S.trail = []; S.camx = S.x; S.camy = S.y;
   const a = Math.random()*TAU, d = 1800 + Math.random()*700;
-  S.wh = {x:Math.cos(a)*d, y:Math.sin(a)*d, w:(Math.random()<.5?-1:1)*(380+Math.random()*320)};
+  S.wh = S.whPlan ? {...S.whPlan} : {x:Math.cos(a)*d, y:Math.sin(a)*d, w:(Math.random()<.5?-1:1)*(380+Math.random()*320)};
+  S.hist = []; S.msg = ''; S.ripples = [];
   S.hypers = [];
   for (let i=0;i<9;i++){ const b = Math.random()*TAU, e = 600 + Math.random()*2600;
     S.hypers.push({x:Math.cos(b)*e, y:Math.sin(b)*e, w:(Math.random()*2-1)*800, R:160+Math.random()*260, vw:(Math.random()*2-1)*60, hue:Math.random()}); }
@@ -451,6 +596,9 @@ function exitOut(){
   S.ang = a; camAng = a; S.trail = []; S.camx = S.x; S.camy = S.y;
   setInsideUI(false); S.anti = false; S.loop = false; S.cl = 1; discover('bounce');
   toast(`Egy fehér lyuk kilökött · kint ${fmt(years)} év telt el`, 'vio', 4);
+  if (S.mission==='novikov'){
+    if (S.loopClosed) endMission(true, 'Bezárult az időhurok', `A jel, amit az út elején kaptál (${S.code}), tőled jött: a tesszeraktból küldted vissza a múltbeli önmagadnak – és épp ezért indultál el megkeresni. A jelentése: a kijárat ${S.codeMean} irányban van. Igor Novikov önkonzisztencia-elve szerint egy időhurokban csak olyan történet valósulhat meg, amely önmagával összhangban van: az üzenet létezik, mert elküldted, és elküldted, mert megkaptad.`, 1200);
+    else endMission(false, 'Paradoxon', `Kijutottál, de a jelet nem küldted vissza. Akkor viszont kitől jött, amit az elején kaptál? A Novikov-elv szerint ilyen önellentmondó történet nem valósulhat meg – a játékban ez a küldetés kudarca.`, 1200); }
 }
 function stepIn(dt, input){
   const d4 = Math.hypot(S.x, S.y, S.w);
@@ -716,7 +864,7 @@ function drawInside(t){
     else if (Math.abs(dw) < h.R + 250){ ctx.strokeStyle = 'rgba(180,140,255,0.25)'; ctx.setLineDash([2,4]);
       ctx.beginPath(); ctx.arc(x,y,6,0,TAU); ctx.stroke(); ctx.setLineDash([]); }
   }
-  drawZonesTop(t);
+  drawZonesTop(t); drawTessTop(t); drawEggsTop(t);
   // szingularitás
   {
     const [x,y] = toS(0,0), aw = Math.abs(S.w);
@@ -730,7 +878,7 @@ function drawInside(t){
     ctx.fillStyle = 'rgba(255,130,120,0.75)'; ctx.fillText(`SZINGULARITÁS · w=0`, x, y - 16 - (aw<150?Math.sqrt(150*150-aw*aw)*z:0));
   }
   // fehér lyuk (kijárat)
-  {
+  if (!whHidden()) {
     const wh = S.wh, [x,y] = toS(wh.x,wh.y), dw = S.w - wh.w;
     if (Math.abs(dw) < 170){ const rr = Math.sqrt(170*170 - dw*dw)*z;
       const gg = ctx.createRadialGradient(x,y,0,x,y,rr*1.8); gg.addColorStop(0,'rgba(255,255,255,0.95)'); gg.addColorStop(0.5,'rgba(200,235,255,0.5)'); gg.addColorStop(1,'rgba(200,235,255,0)');
@@ -756,6 +904,8 @@ const PHEN = {
     p:'A lyukba hulló gázfelhőt az árapályerő sugárirányban megnyújtja, oldalirányban összenyomja: hosszú, vékony szálakká húzza. Ugyanez történik a csillagokkal is az árapályos szétszakítási eseményeknél (TDE), amelyeket a távcsövek rendszeresen látnak fellobbanni.'},
   sky:{t:'A kinti ég', tag:'Jelenség · gyakori tévhit cáfolata',
     p:() => `Népszerű kép, hogy a lyukba zuhanva lepörögni látod a világegyetem teljes jövőjét. Ez nem igaz: a beeső megfigyelő a horizont átlépése után is csak véges kinti időt lát, és a kinti ég képe torzul, de nem gyorsul végtelenül. A játékban a kinti óra most ${tfmt(S.tE)}-nél jár – ezt a játékszabály (a fehér lyukas visszapattanás) adja, nem a látvány.`},
+  self:{t:'Önmagad, hátulról', tag:'Jelenség · zárt időszerű görbék (spekulatív)',
+    p:'Itt az idő is úgy viselkedik, mint egy térirány: a saját, néhány másodperccel korábbi helyzeteidet látod magad előtt, hátulról, egymás mögött. Az általános relativitáselmélet egyes megoldásai (Gödel 1949, a forgó Kerr-lyuk gyűrűjén belüli tartomány, mozgatott féreglyukak) megengednek zárt időszerű görbéket, amelyeken a múltba lehetne jutni. A valóságban egyet sem ismerünk, és Hawking kronológiavédelmi sejtése szerint a természet megakadályozza őket. Az Interstellar tesszeraktja is ezt az ötletet viszi tovább – fikcióként.'},
   bkl:{t:'BKL-káosz', tag:'Jelenség · Belinszkij, Halatnyikov, Lifsic, 1970',
     p:'Az általános szingularitás közelében a téridő nem egyenletesen zsugorodik: az egyik irányban nyúlik, a másik kettőben összehúzódik, és ezek a szerepek kaotikusan, egyre gyorsabban cserélődnek („mixmaster”-viselkedés). A képernyő lüktető nyúlása ezt mutatja – a valóságban ez a hajót darabokra tépné.'},
   penrose:{t:'Penrose-diagram', tag:'Szemléltetés · Roger Penrose, 1960-as évek',
@@ -1032,12 +1182,12 @@ function drawCockpit4D(t, f, hcx, hcy, fx, fy, rxv, ryv){
     ctx.stroke(); };
   grid(S.w*0.7, -180, 'rgba(180,140,255,0.11)');
   grid(-S.w*0.7, 180, 'rgba(255,190,110,0.06)');
-  drawStreamsCockpit(t, p3);
+  drawStreamsCockpit(t, p3); drawEggsCockpit(t, f, p3, fx, fy); drawTessCockpit(t, f, hcx, hcy, p3, fx, fy);
   const objs = [];
   for (const h of S.hypers){ const dw = S.w - h.w; if (Math.abs(dw) < h.R) objs.push({x:h.x,y:h.y,r:Math.sqrt(h.R*h.R-dw*dw),k:'h',hue:h.hue}); }
   { const aw = Math.abs(S.w); if (aw < 520) objs.push({x:0,y:0,r:Math.sqrt(520*520-aw*aw),k:'s',core:aw<150?Math.sqrt(150*150-aw*aw):0}); }
   drawZonesCockpit(t, f, hcx, hcy, fx, fy, rxv, ryv);
-  const wh = S.wh, dww = S.w - wh.w; objs.push({x:wh.x,y:wh.y,r:Math.abs(dww)<170?Math.sqrt(170*170-dww*dww):0,k:'w'});
+  const wh = S.wh, dww = S.w - wh.w; if (!whHidden()) objs.push({x:wh.x,y:wh.y,r:Math.abs(dww)<170?Math.sqrt(170*170-dww*dww):0,k:'w'});
   for (const o of objs){ o.d = (o.x-S.x)*fx + (o.y-S.y)*fy; }
   objs.sort((a,b) => b.d - a.d);
   ctx.textAlign = 'center'; ctx.font = '500 10px "IBM Plex Mono", monospace';
@@ -1172,8 +1322,9 @@ function drawRadar(){
     const m = Math.hypot(dx,dy), lim = half-8; if (m>lim){ dx*=lim/m; dy*=lim/m; } return [half+dx, half+dy, m>lim]; };
   if (S.inside){
     const [sx,sy] = pt(0,0); rctx.fillStyle = '#ff5a52'; rctx.beginPath(); rctx.arc(sx,sy,3.5,0,TAU); rctx.fill();
-    const [wx,wy] = pt(S.wh.x,S.wh.y); const near = Math.abs(S.w - S.wh.w) < 170;
-    rctx.fillStyle = near ? '#ffffff' : 'rgba(230,245,255,0.55)'; rctx.beginPath(); rctx.arc(wx,wy,near?4:3,0,TAU); rctx.fill();
+    if (!whHidden()){ const [wx,wy] = pt(S.wh.x,S.wh.y); const near = Math.abs(S.w - S.wh.w) < 170;
+      rctx.fillStyle = near ? '#ffffff' : 'rgba(230,245,255,0.55)'; rctx.beginPath(); rctx.arc(wx,wy,near?4:3,0,TAU); rctx.fill(); }
+    if (S.zn && S.zn.tess){ const T = S.zn.tess, [tx,ty] = pt(T.x,T.y); rctx.strokeStyle = 'rgba(255,205,120,0.95)'; rctx.lineWidth = 1.4; rctx.strokeRect(tx-3.5,ty-3.5,7,7); rctx.strokeRect(tx-1.5,ty-1.5,3,3); }
     if (S.zn) for (const zz of zoneList()){ const [zx,zy] = pt(zz.o.x,zz.o.y); const inS = Math.abs(S.w-zz.o.w) < zz.rw; rctx.fillStyle = `rgba(${zz.col},${inS?1:0.45})`; rctx.fillRect(zx-2,zy-2,4,4); }
   } else {
     const [bx,by] = pt(0,0);
@@ -1204,7 +1355,7 @@ function hud(){
   hR.textContent = S.inside ? (S.loop ? '−1,5× ↺' : (S.cl<1 ? 'c = 0,35' : (S.anti ? 'antivilág' : '≈ 0×'))) : fmt(S.rate, 2) + '×'; hR.className = 'v' + (S.inside ? ' vio' : (S.rate<0.5?' warn':''));
   hT.textContent = tfmt(S.tE); hTau.textContent = tfmt(S.tau); hD.textContent = tfmt(S.tE - S.tau);
   if (S.inside){ const near = Math.abs(S.w - S.wh.w) < 170;
-    hDist.textContent = `${Math.round(S.w)} → ${Math.round(S.wh.w)}`; hDist.className = 'v ' + (near ? '' : 'vio'); }
+    hDist.textContent = whHidden() ? `${Math.round(S.w)} → ?` : `${Math.round(S.w)} → ${Math.round(S.wh.w)}`; hDist.className = 'v ' + (near ? '' : 'vio'); }
   else { const rr = r0()/RS; hDist.textContent = rr > 20000 ? fmtLy(r0()) : fmt(rr) + ' rs'; hDist.className = 'v' + (rr<3?' warn':''); }
   { const [k, v, c] = missionHud(); $('kBeac').textContent = k; hBeac.textContent = v; hBeac.className = 'v' + (c ? ' ' + c : ''); }
   $('bAlc').textContent = S.alc ? 'LEÁLLÍT' : 'ALCU\u00ADBIERRE';
@@ -1383,9 +1534,12 @@ function updateSci(){
 document.getElementById('bSci').addEventListener('click', () => { sciEl.hidden = !sciEl.hidden; if (!sciEl.hidden){ renderMass(); updateSci(); } });
 document.getElementById('sciX').addEventListener('click', () => { sciEl.hidden = true; });
 const bFireEl = document.getElementById('bFire');
-bFireEl.addEventListener('click', () => { if (!S.inside && r0() < ERGO) dropCargo(); else firePhoton(); });
+bFireEl.addEventListener('click', () => { if (inTess()) return; if (!S.inside && r0() < ERGO) dropCargo(); else firePhoton(); });
+bFireEl.addEventListener('pointerdown', () => { pulseDown(); });
+addEventListener('pointerup', () => { pulseUp(); });
 document.getElementById('bSnd').addEventListener('click', e => { soundOn = !soundOn; ensureAudio(); e.currentTarget.textContent = 'Pulzár-hang: ' + (soundOn?'be':'ki'); });
-addEventListener('keydown', e => { if (mode!=='play') return; if (e.code==='KeyF') firePhoton(); if (e.code==='KeyG') dropCargo(); if (e.code==='KeyT') document.getElementById('bSci').click(); });
+addEventListener('keyup', e => { if (e.code==='KeyF') pulseUp(); });
+addEventListener('keydown', e => { if (mode!=='play') return; if (e.code==='KeyF'){ if (e.repeat) return; if (!pulseDown()) firePhoton(); } if (e.code==='KeyG') dropCargo(); if (e.code==='KeyT') document.getElementById('bSci').click(); });
 
 // ---- Elméletek a lyuk belsejében ----
 const THEORIES = {
@@ -1417,7 +1571,9 @@ function makeZones(){
   S.zn = { wa:{x:Math.cos(a)*1300, y:Math.sin(a)*1300, w:sw()},
            wb:{x:Math.cos(a+2.9)*2900, y:Math.sin(a+2.9)*2900, w:sw()},
            kerr:{x:Math.cos(a+1.9)*2100, y:Math.sin(a+1.9)*2100, w:sw()},
-           baby:{x:Math.cos(a-1.9)*2500, y:Math.sin(a-1.9)*2500, w:sw(), R:340} };
+           baby:{x:Math.cos(a-1.9)*2500, y:Math.sin(a-1.9)*2500, w:sw(), R:340},
+           tess:{x:Math.cos(a+0.85)*1700, y:Math.sin(a+0.85)*1700, w:sw()*0.6, R:430} };
+  S.eggs = EGGS.map((e, i) => { const b = a + 3.6 + i*1.9, d = 3200 + Math.random()*500; return {...e, x:Math.cos(b)*d, y:Math.sin(b)*d, w:(i ? -1 : 1)*(420 + Math.random()*250), R:250}; });
   S.anti = false; S.inRing = false; S.wasBaby = false; S.loop = false; S.tIn = 0; S.wcd = 0; S.cl = 1;
 }
 const wormOpen = () => ((S.tIn % 7)/7) < 0.4;
@@ -1426,7 +1582,7 @@ const ringDist = () => { const k = S.zn.kerr; return Math.hypot(S.x-k.x, S.y-k.y
 
 function zoneEffects(dt){
   const z = S.zn; if (!z) return;
-  S.tIn += dt; S.wcd = Math.max(0, S.wcd - dt);
+  S.tIn += dt; S.wcd = Math.max(0, S.wcd - dt); tessStep(dt); eggStep();
   for (const [m,o] of [[z.wa,z.wb],[z.wb,z.wa]]){
     const dxy = Math.hypot(S.x-m.x, S.y-m.y), d = Math.hypot(dxy, S.w-m.w);
     if (d < 110 && S.wcd <= 0){
@@ -1847,6 +2003,7 @@ const MISSIONS = {
   future:{n:'Ugrás a jövőbe', d:'A Földön teljen el 1 millió év, a hajón legfeljebb 30 nap. Siess: a játékban minden másodperc egy hajónap. A buborék itt nem segít: abban nincs időtágulás.', t:'Ugrás a jövőbe · Föld ≥ 1 millió év, hajó ≤ 30 nap'},
   theory:{n:'Elmélet-vadász', d:'Ugorj át a horizonton, fedezd fel mind a hat elméletet a 4D térben, és juss ki egy fehér lyukon.', t:'Elmélet-vadász · a lyukba kell bemenned'},
   gw:{n:'Hullámvadász', d:'Légy 3000 egységen belül a kettős lyuktól, amikor az összeolvadás hulláma eléri a hajót. Figyeld a GW-detektort: a csiripelés egyre gyorsul.', t:'Hullámvadász · narancs pont a radaron · légy közel, amikor a hullám ideér'},
+  novikov:{n:'Üzenet a múltba', d:'Ismeretlen jel érkezik a semmiből. Ugorj a lyukba, keresd meg a tesszeraktot, ahol hátulról látod önmagad, és küldd vissza a jelet a múltba. A kijárat rejtve van, amíg a tesszeraktba nem érsz.', t:() => `Ismeretlen jel érkezett: ${S.code} · forrása nem azonosítható`},
   penrose:{n:'Penrose-bánya', d:'Öt rakományból háromszor nyerj energiát az ergoszférában, aztán szökj el 30 rs-en túlra. Egy menetbe csak egy ledobás fér bele.', t:'Penrose-bánya · ergoszféra 1,6 rs-en belül · a forgás irányába repülve dobj hátra'},
 };
 let records = {}; try{ records = JSON.parse(localStorage.getItem('eh-rec') || '{}') || {}; }catch(_){}
@@ -1862,6 +2019,7 @@ function missionHud(){
   if (m==='theory') return ['Elméletek', `${thCount()} / ${TH_N}`, S.inside ? 'vio' : ''];
   if (m==='gw'){ const g = S.gw, d = Math.hypot(S.x-g.x, S.y-g.y), ph = g.state==='in' ? `spirál ${Math.round(g.t/g.T*100)}%` : (g.state==='ring' ? 'lecsengés' : 'csend');
     return ['Kettős lyuk', `${fmt(d/1000,1)}k / 3k · ${ph}`, d < GW_WIN_D ? 'blue' : '']; }
+  if (m==='novikov') return ['Jel', S.loopClosed ? `${S.code} · hurok zárva` : (S.msg ? `${S.code} · küldve: ${S.msg}` : `${S.code} · forrás: ?`), S.loopClosed ? 'blue' : 'vio'];
   if (m==='penrose') return ['Penrose', S.penrose >= PEN_N ? `${PEN_N}/${PEN_N} · szökj 30 rs-en túlra` : `${S.penrose} / ${PEN_N} · rakomány ${S.cargo}`, S.penrose >= PEN_N ? 'blue' : ''];
   return ['Jeladók', `${S.collected} / ${S.beacons.length}`, ''];
 }
@@ -1872,6 +2030,7 @@ function missionStat(){
   if (m==='future') return ['Hajó-keret', `${fmt(S.tau,1)} / ${FUT_TAU} nap`];
   if (m==='theory') return ['Teljesítve', `${thCount()} / ${TH_N} elmélet`];
   if (m==='gw') return ['Távolság az összeolvadáskor', S.gwCaught!=null ? `${fmt(S.gwCaught/1000,2)}k egység` : '–'];
+  if (m==='novikov') return ['Időhurok', S.loopClosed ? 'bezárult' : 'nyitva maradt'];
   if (m==='penrose') return ['Sikeres ledobás', `${S.penrose} / ${PEN_N}`];
   return ['Jeladók', `${S.collected} / ${S.beacons.length}`];
 }
@@ -2440,7 +2599,7 @@ const ov = $('ov'), card = $('card');
 function showMenu(){
   card.innerHTML = `<div class="eyebrow">Relativisztikus pilótagyakorlat</div>
   <h1>Esemény<span>horizont</span></h1>
-  <p>Egy fekete lyuk körül repülsz. Hét küldetés közül választhatsz. Minél gyorsabban mész, és minél közelebb kerülsz a lyukhoz, annál lassabban jár a hajó órája a Földhöz képest.</p>
+  <p>Egy fekete lyuk körül repülsz. Nyolc küldetés közül választhatsz. Minél gyorsabban mész, és minél közelebb kerülsz a lyukhoz, annál lassabban jár a hajó órája a Földhöz képest.</p>
   <div class="eyebrow">Válassz küldetést</div>
   <div class="mlist">${Object.entries(MISSIONS).map(([k,m]) => `<button class="mbtn" type="button" data-m="${k}"><b>${m.n}</b><span>${m.d}</span>${records[k]!=null ? `<i>✓ legjobb: ${tfmt(records[k])} hajóidő</i>` : ''}</button>`).join('')}</div>
   <ul>
@@ -2451,12 +2610,12 @@ function showMenu(){
     <li><b>ALCUBIERRE</b>: térhajtómű – a téridő viszi a hajót, akár a fény tízmilliószorosával, időtágulás nélkül. Legfeljebb három töltet egzotikus anyagod van, a Casimir-gyűjtő 12 másodpercenként pótol egyet.</li>
     <li><b>Féreglyuk</b> (H): a radaron lila kör jelzi. Hangold egy távoli helyre, és repülj bele a gömbbe – egy pillanat alatt átjutsz.</li>
     <li><b>FOTON</b>: fényt lősz ki, a pályáját az általános relativitáselmélet egyenlete számolja. <b>TUDOMÁNY</b>: élő mérések, és a lyuk tömege is állítható. Keresd meg a pulzárt is.</li>
-    <li>Az eseményhorizonton túl egy <b>négydimenziós tér</b> vár. Ott a W-tengelyen is mozoghatsz: keresd meg a fehér lyukat, és kerüld el a szingularitást. Itt hat valódi elmélet játszható változata rejtőzik: féregjárat, Kerr-gyűrű, bébi-univerzum és mások. A műszerfalon Penrose-diagram mutatja, hol vagy a téridőben.</li>
+    <li>Az eseményhorizonton túl egy <b>négydimenziós tér</b> vár. Ott a W-tengelyen is mozoghatsz: keresd meg a fehér lyukat, és kerüld el a szingularitást. Itt hat valódi elmélet játszható változata rejtőzik: féregjárat, Kerr-gyűrű, bébi-univerzum és mások. A műszerfalon Penrose-diagram mutatja, hol vagy a téridőben. Valahol egy <b>tesszerakt</b> is van: ott hátulról látod önmagad, és üzenhetsz a múltba. És aki elég mélyre merészkedik a W-tengelyen, talán más univerzumokat is talál.</li>
   </ul>`;
   ov.hidden = false; card.querySelectorAll('.mbtn').forEach(b => b.onclick = () => start(b.dataset.m)); card.querySelector(`.mbtn[data-m="${mission}"]`).focus();
 }
 function start(m){ if (typeof m === 'string') mission = m; ensureAudio(); reset(); mode = 'play'; ov.hidden = true;
-  toast(MISSIONS[mission].t, '', 3.5); }
+  { const tt = MISSIONS[mission].t; toast(typeof tt==='function' ? tt() : tt, '', 4.5); } }
 function die(kind){ if (mode!=='play') return; mode = 'dead'; S.dead = true;
   for (let i=0;i<60;i++){ const a = Math.random()*TAU, v = 40+Math.random()*200; S.parts.push({x:S.x,y:S.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:1.2,c:'255,90,82'}); }
   if (kind==='tidal') setTimeout(() => endCard('Spagettifikáció',
