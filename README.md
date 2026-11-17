@@ -20,7 +20,20 @@ Relativisztikus pilótagyakorlat egy fekete lyuk körül: időtágulás, árapá
 
 A játék küldetésenként megjegyzi az öt legjobb (legrövidebb hajóidejű) teljesítést. A rekordtábla a böngészőben tárolódik, ezért eszközönként külön van.
 
+## Három univerzum
+
+Az Eseményhorizont, a [Kísérleti Lőtér](https://buhallamate-del.github.io/Kiserleti_robbantas/) és a [Raktár 3D](https://buhallamate-del.github.io/raktar-3d/) közös naplót vezet (ugyanazon a webcímen futnak, ezért a böngésző tárhelye közös, a kulcs: `univerzum-naplo`). Ami az egyikben történik, a másik kettő is tudja:
+
+- A Lőtérben szökési sebességre gyorsított szonda jele az Eseményhorizontba vezet (kapu), és a szonda itt kering a lyuk körül – ha elkapod, feltölti az energiádat.
+- A Raktár 3D-ben (bekapcsolt játéknál, séta közben) a pohármosó ajtajában egy apró fekete lyuk lebeg: aki belesétál, átlép ide.
+- A 4D tér két titkos buborékjából át lehet lépni a másik két játékba. Ha valamelyikben már jártál, a buborékja a radaron is látszik.
+- A Lőtér kutatási támogatást kap, ha itt megtaláltad a buborékját; a Raktár emlékszik rád, ha a buborékjában már jártál.
+- A menüben a „Három univerzum” napló mutatja, mi történt eddig.
+
 ## Változások
+
+### 1.9 – 2026. november 17.
+- Három univerzum: közös napló a Kísérleti Lőtérrel és a Raktár 3D-vel, kölcsönös kapuk, a Lőtér-szonda, érkezési üzenet a menüben, a buborékok megjelennek a radaron, ha a másik játékban már jártál. A buborékban futó játék kapuja visszahoz ide (nem tölt be újra mindent).
 
 ### 1.8 – 2026. november 17.
 - Tesszerakt a 4D térben: itt az idő is térirányként viselkedik – a néhány másodperccel korábbi önmagadat látod magad előtt, hátulról, egymás mögött, egy végtelen folyosóban. A FOTON gombbal jelet küldhetsz a múltba (röviden = pont, hosszan = vonal).
