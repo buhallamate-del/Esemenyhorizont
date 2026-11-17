@@ -22,7 +22,7 @@ A játék küldetésenként megjegyzi az öt legjobb (legrövidebb hajóidejű) 
 
 ### 1.4 – 2026. november 17.
 - Féreglyuk (H): a lyuk mellett egy kapu, amely bármelyik távoli helyre hangolható; minden helyen ott a visszavezető száj. Az Interstellar mintájára gömbként látszik, benne a túloldal egével és a peremén lencsézett háttérrel.
-- Átkelés-nézet: a torok belső felszínén haladsz, az indulás ege elhalványul, a célé kitágul; félúton a torok.
+- Átkelés a film mintájára: a gömb kitágul, amíg betölti a képet; a torokban textúrázott „tájak” suhannak el a falon (az indulás színeiből a cél színeibe), a torok kanyarog, a hajó rázkódik, a cél fénye egyre gyorsabban közeledik, a végén felfehéredés.
 - A Csillagközi körútban a kapu csak a már felkeresett helyekre hangolható, hogy a küldetést továbbra is repülve kelljen teljesíteni.
 - Az értesítések nem írják felül a nyitott kártyák szövegét.
 
