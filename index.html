@@ -75,6 +75,12 @@ body{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px
 
 .sci{z-index:5}
 .disc{z-index:6}
+#portal{position:fixed;inset:0;z-index:30;background:#000;animation:portalIn .9s ease-out}
+#portal iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
+#portalBack{position:fixed;z-index:31;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 14px);font:600 12px "IBM Plex Mono",monospace;letter-spacing:.06em;
+  color:#e9edf6;background:rgba(10,8,20,.82);border:1px solid rgba(190,150,255,.6);border-radius:20px;padding:9px 16px;box-shadow:0 0 20px rgba(160,110,255,.45);cursor:pointer;opacity:.85}
+#portalBack:hover{opacity:1}
+@keyframes portalIn{from{opacity:0;filter:blur(8px) brightness(2.2)}to{opacity:1;filter:none}}
 .toast{z-index:4}   /* a kártyák és panelek alá: ne írja felül a szövegüket */
 #mapC{width:100%;max-width:340px;aspect-ratio:1;justify-self:center;touch-action:manipulation;cursor:pointer}
 #apGo:disabled{opacity:.4;cursor:default}
@@ -216,6 +222,8 @@ body{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px
   <button class="pill" id="bSci" type="button">TUDOMÁNY</button>
   <button class="pill" id="bView" type="button">NÉZET</button>
 </div>
+<div id="portal" hidden><iframe id="portalF" title="Másik univerzum" allow="fullscreen; autoplay; pointer-lock; gamepad"></iframe>
+  <button id="portalBack" type="button">◀ Vissza a fekete lyukba</button></div>
 <div class="disc" id="disc" hidden><div class="tag" id="discTag"></div><h2 id="discT"></h2><p id="discP"></p><span class="tap">Koppints a bezáráshoz</span></div>
 <div class="sci" id="sci" hidden>
   <div class="sciHead"><span>Műszerek</span><button class="x" id="sciX" type="button" aria-label="Bezárás">✕</button></div>
@@ -381,19 +389,44 @@ const EGG_SRC = {loter:'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDA
 const EGGS = [
   {id:'loter', n:'Kísérleti Lőtér', col:'255,150,70', url:'https://buhallamate-del.github.io/Kiserleti_robbantas/',
    p:'Ebben a buboréknak más a fizikája: 1957 van, és egy hidegháborús rakétaprogramot vezetsz. Tervezz, indíts, tartsd egyensúlyban a keretet – és döntsd el, mire jó az egész. Ugyanaz a szerző építette, mint ezt a játékot.'},
-  {id:'raktar', n:'Raktár 3D', col:'120,220,150', url:'https://github.com/buhallamate-del/raktar-3d',
+  {id:'raktar', n:'Raktár 3D', col:'120,220,150', url:'https://buhallamate-del.github.io/raktar-3d/',
    p:'Egy bejárható, háromdimenziós raktár – mind a 976 tárhelyével, éjszakai sötétséggel és komissiózás időre. Ebben az univerzumban a szingularitás helyett a polcok közt kell utat találni. Ugyanaz a szerző építette, mint ezt a játékot.'}];
 const EGG_IMG = {}; for (const e of EGGS){ const im = new Image(); im.src = EGG_SRC[e.id]; EGG_IMG[e.id] = im; }
 function eggStep(){
   if (!S.eggs) return;
-  for (const e of S.eggs){ if (Math.hypot(S.x - e.x, S.y - e.y, (S.w - e.w)*1.2) > e.R) continue;
-    if (!S.eggSeen) S.eggSeen = {}; if (S.eggSeen[e.id]) continue; S.eggSeen[e.id] = true;
+  for (const e of S.eggs){ if (S.portal || Math.hypot(S.x - e.x, S.y - e.y, (S.w - e.w)*1.2) > e.R) continue;
+    S.portal = {t:0, T:2.4, e}; S.thrust = 0; return; } }
+function eggCard(e){
+    if (!S.eggSeen) S.eggSeen = {}; S.eggSeen[e.id] = true;
     let found = {}; try{ found = JSON.parse(localStorage.getItem('eh-eggs') || '{}') || {}; }catch(_){} found[e.id] = 1; try{ localStorage.setItem('eh-eggs', JSON.stringify(found)); }catch(_){}
     const n = Object.keys(found).length;
     document.getElementById('discTag').textContent = `Titkos bébi-univerzum · ${n}/${EGGS.length} megtalálva`;
     document.getElementById('discT').textContent = e.n;
-    document.getElementById('discP').innerHTML = `${e.p} <a href="${e.url}" target="_blank" rel="noopener" style="color:#ffd59a">Átlépés ebbe az univerzumba ↗</a>`;
-    discEl.hidden = false; discTimer = 18; toast(`Egy másik univerzum: ${e.n}`, 'vio', 3); }
+    document.getElementById('discP').innerHTML = `${e.p} <a href="${e.url}" target="_blank" rel="noopener" style="color:#ffd59a">Megnyitás külön lapon ↗</a>`;
+    discEl.hidden = false; discTimer = 18; }
+// átlépés: a buborék kitágul és elnyel, aztán a másik játék teljes képernyőn fut; a „Vissza” gombbal ide térsz vissza
+const portalEl = document.getElementById('portal'), portalF = document.getElementById('portalF');
+function stepPortal(dt){ const P = S.portal; P.t += dt; S.thrust = 0;
+  if (P.t >= P.T && mode==='play'){ mode = 'portal'; portalF.src = P.e.url; portalEl.hidden = false; try{ if (actx) actx.suspend(); }catch(_){} } }
+function portalReturn(){ if (mode !== 'portal') return; const e = S.portal.e;
+  portalEl.hidden = true; portalF.src = 'about:blank'; mode = 'play'; S.portal = null; try{ if (actx) actx.resume(); }catch(_){}
+  // kilökődés a buborékból, hogy ne nyeljen el újra
+  const dx = S.x - e.x, dy = S.y - e.y, d = Math.hypot(dx, dy) || 1; S.x = e.x + dx/d*e.R*1.7; S.y = e.y + dy/d*e.R*1.7; S.px = dx/d*60; S.py = dy/d*60; S.ang = Math.atan2(dy, dx); camAng = S.ang;
+  S.camx = S.x; S.camy = S.y; S.fadeIn = 1; last = performance.now();
+  eggCard(e); toast(`Visszatértél · ${e.n} → Eseményhorizont`, 'vio', 3); }
+document.getElementById('portalBack').addEventListener('click', portalReturn);
+function drawPortal(t){
+  const P = S.portal, p = clamp(P.t/P.T, 0, 1), e = P.e, im = EGG_IMG[e.id], M = Math.max(W,H), cx = W/2, cy = H*0.46;
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
+  // a csillagok a buborék felé hullanak, a buborék kitágul, végül a másik világ képe tölti be a látómezőt
+  ctx.globalCompositeOperation = 'lighter';
+  for (const s of FST){ const z = (((s.u - p*1.6) % 1) + 1) % 1 + 0.03, r = M*0.05/z; if (r > M) continue; ctx.fillStyle = `rgba(${e.col},${(s.b*(1 - z)*0.8).toFixed(3)})`; ctx.fillRect(cx + Math.cos(s.a)*r, cy + Math.sin(s.a)*r*0.8, 1.5, 1.5); }
+  ctx.globalCompositeOperation = 'source-over';
+  const rp = Math.min(W,H)*0.18 + Math.pow(sstep(0.1, 1, p), 2.2)*M*1.1;
+  drawEggBubble(e, cx, cy, rp, t*(1 + p*4), 1);
+  if (p > 0.75){ ctx.fillStyle = `rgba(255,250,240,${(sstep(0.75, 1, p)*0.9).toFixed(3)})`; ctx.fillRect(0,0,W,H); }
+  ctx.font = '600 13px "Space Grotesk", "IBM Plex Mono", sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = `rgba(240,235,255,${(0.9*(1 - sstep(0.7, 0.95, p))).toFixed(3)})`;
+  ctx.fillText(`ÁTLÉPÉS EGY MÁSIK UNIVERZUMBA · ${e.n.toUpperCase()}`, cx, Math.max(236, H*0.3));
 }
 function drawEggBubble(e, x, y, rp, t, al){
   const im = EGG_IMG[e.id]; if (rp < 2 || al <= 0.01) return;
@@ -640,7 +673,8 @@ function update(dt){
     if (S.ap && (input.thrust>0 || input.warp || input.brake || input.turn || input.target!=null)){ S.ap = null; toast('Autopilóta kikapcsolva', '', 1.6); }
   }
   if (mode==='play' || mode==='menu'){
-    if (S.inside){
+    if (S.portal){ stepPortal(dt);
+    } else if (S.inside){
       stepIn(dt, input);
       if (mode==='play'){ zoneEffects(dt);
         const d4 = Math.hypot(S.x,S.y,S.w);
@@ -723,6 +757,7 @@ function draw(t){
   if (mode==='play' && !S.inside && r < 4*RS){ const q = (4*RS - r)/(3*RS); shx = (Math.random()-.5)*6*q; shy = (Math.random()-.5)*6*q; }
   V = {z, rot, cr:Math.cos(rot), sr:Math.sin(rot), cx:W/2+shx, cy:H*0.5+shy};
   ctx.globalCompositeOperation = 'source-over';
+  if (S.portal){ drawPortal(t); return; }
   if (S.fall){ drawFall(t); filmGrain(); drawControls(t); return; }
   if (S.worm){ drawWormTransit(t); filmGrain(); drawControls(t); return; }
   if (view==='cockpit'){ const rr = -(S.ang + Math.PI/2); V.rot = rr; V.cr = Math.cos(rr); V.sr = Math.sin(rr); drawCockpit(t); }
@@ -2648,6 +2683,7 @@ reset(); showMenu();
 
 let last = performance.now(), frame = 0;
 function loop(t){ const dt = Math.min(0.05, (t-last)/1000); last = t;
+  if (mode === 'portal'){ requestAnimationFrame(loop); return; }   // a másik játék fut: itt minden áll
   update(dt); draw(t); if ((frame++ & 1)===0){ hud(); drawRadar(); }
   requestAnimationFrame(loop); }
 requestAnimationFrame(loop);

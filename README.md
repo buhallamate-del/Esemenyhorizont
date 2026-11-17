@@ -24,7 +24,7 @@ A játék küldetésenként megjegyzi az öt legjobb (legrövidebb hajóidejű) 
 ### 1.8 – 2026. november 17.
 - Tesszerakt a 4D térben: itt az idő is térirányként viselkedik – a néhány másodperccel korábbi önmagadat látod magad előtt, hátulról, egymás mögött, egy végtelen folyosóban. A FOTON gombbal jelet küldhetsz a múltba (röviden = pont, hosszan = vonal).
 - Új küldetés: Üzenet a múltba. A jel, amit az elején kapsz, a kijárat irányát kódolja, és tőled jön: a tesszeraktból kell visszaküldened. Ha nem teszed, paradoxon (Novikov önkonzisztencia-elve, bootstrap-paradoxon). A fehér lyuk rejtve van, amíg a tesszeraktba nem érsz.
-- Easter egg: a 4D tér mélyén két titkos bébi-univerzum rejtőzik – bennük a szerző két másik játéka.
+- Easter egg: a 4D tér mélyén két titkos bébi-univerzum rejtőzik – bennük a szerző két másik játéka (Kísérleti Lőtér, Raktár 3D). Ha belerepülsz, a buborék elnyel, és **átlépsz** a másik játékba: az teljes képernyőn fut, az Eseményhorizont addig áll. A „Vissza a fekete lyukba” gombbal ott folytatod, ahol abbahagytad.
 
 ### 1.7 – 2026. november 17.
 - Kíméletesebb fénysebesség-közeli utazás: állandó sebességnél nincsenek csillagcsíkok (a kép ilyenkor fizikailag áll), csak gyorsításkor egy rövid, halvány elmosódás. Helyette lágy „csillagív”: az égbolt fénye előre torlódik a cos θ' = β szögön belülre, kékes-fehér középpel és narancs peremmel, hátrafelé sötétülő éggel. Szelídebb Doppler-színek, rövidebb, halványuló porcsíkok.
