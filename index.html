@@ -75,7 +75,7 @@ body{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px
 
 .sci{z-index:5}
 .disc{z-index:6}
-.toast{z-index:7}
+.toast{z-index:4}   /* a kártyák és panelek alá: ne írja felül a szövegüket */
 #mapC{width:100%;max-width:340px;aspect-ratio:1;justify-self:center;touch-action:manipulation;cursor:pointer}
 #apGo:disabled{opacity:.4;cursor:default}
 .radarCap{position:fixed;top:calc(env(safe-area-inset-top,0px) + 140px);right:max(14px,env(safe-area-inset-right,0px));width:124px;text-align:center;font-size:9.5px;color:var(--dim);letter-spacing:.06em;pointer-events:none}
@@ -233,6 +233,12 @@ body{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px
   <p class="note">A töltetet egy Casimir-gyűjtő pótolja. A Casimir-effektus valódi: két egymáshoz nagyon közeli fémlemez között a vákuum energiasűrűsége negatív, és a lemezeket összenyomó erőt 1997-ben meg is mérték (Lamoreaux). A mennyiség azonban parányi – egy buborékhoz elég gyűjtése játékelem.</p>
   <p class="note">Az Alcubierre-metrika (1994) az általános relativitáselmélet érvényes megoldása, de negatív energiasűrűségű „egzotikus anyagot” igényel, amelyet nagy mennyiségben senki nem tud előállítani. Az első becslés a megfigyelhető univerzum tömegénél is többet adott; a későbbi optimalizálások ezt Jupiter-tömeg körülire vagy az alá csökkentették. Két ismert gond: a buborék eleje fénynél gyorsabb mozgásnál kauzálisan el van vágva a hajótól, ezért belülről nem irányítható; és a menet közben felgyűlő részecskék megálláskor erős sugárzásként csapódnak a cél felé (McMonigal, Lewis és O’Byrne, 2012).</p>
 </div>
+<div class="sci alcBox" id="worm" hidden>
+  <div class="sciHead"><span>Féreglyuk-hangolás</span><button class="x" id="wormX" type="button" aria-label="Bezárás">✕</button></div>
+  <p class="note" style="color:#d3d0e4">A gömb a másik szájat mutatja: amit benne látsz, az a cél ege, a széle felé egyre jobban összenyomva. Válassz célt, aztán repülj bele a gömbbe. Minden távoli helyen ott a visszavezető száj.</p>
+  <div class="list" id="wormList"></div>
+  <p class="note">Átjárható féreglyukat Morris és Thorne írt le 1988-ban: a torkot csak negatív energiasűrűségű egzotikus anyag tartaná nyitva – ugyanaz a gond, mint az Alcubierre-hajtóműnél. Az Interstellar féreglyukát Kip Thorne és a Double Negative csapata a fénypályák tényleges kiszámolásával rajzolta meg (James és mtsai, 2015): gömbnek látszik, amely a túloldal egét mutatja. A játékban a két száj egymáshoz képest nyugszik, ezért átkelés közben a hajóóra és a földi óra együtt jár. Ha az egyik szájat közel fénysebességgel elvinnék és visszahoznák, a féreglyuk időgéppé válhatna (Morris, Thorne, Yurtsever, 1988) – Hawking szerint ezt a természet valahogy megakadályozza.</p>
+</div>
 <div class="pad" id="pad">
   <button class="btn" id="bAlc" type="button">ALCU&shy;BIERRE</button>
   <button class="btn" id="bBrake" type="button">FÉK</button>
@@ -283,7 +289,7 @@ function reset(){
   S = { x:r0, y:0, w:0, px:0, py:-v0*g0, vx:0, vy:-v0, ang:-Math.PI/2, tE:0, tau:0, energy:100, beta:0, gamma:1, rate:1, rmin:r0,
         gmax:1, hit95:false, hit99:false, trail:[], parts:[], beacons, collected:0, camx:r0, camy:0, zoom:0.3, thrust:0,
         dead:false, inside:false, visits:0, wh:null, hypers:[], enterT:0, flash:0,
-        photons:[], pairs:[], fired:0, captured:0, psr:{x:-9000, y:12500}, psrPhase:0, psrFlash:0, theories:{}, visited:{}, ap:null, exotic:EXO_MAX, casimir:0, ending:false, gwCaught:null, gwMissed:null, gwWarned:false, alc:null, alcBlast:0, zn:null, anti:false, loop:false, cl:1,
+        photons:[], pairs:[], fired:0, captured:0, psr:{x:-9000, y:12500}, psrPhase:0, psrFlash:0, theories:{}, visited:{}, ap:null, exotic:EXO_MAX, casimir:0, ending:false, gwCaught:null, gwMissed:null, gwWarned:false, alc:null, worm:null, wormTo:null, wormAsked:false, alcBlast:0, zn:null, anti:false, loop:false, cl:1,
         mission, home:{x:r0, y:0}, twinReady:false, cargo:mission==='penrose' ? PEN_CARGO : 3, cargoObjs:[], penrose:0, gw:newGW(), gwBuf:[], hw:0, gwA:0, gwOm:0, gwFlash:0 };
   if (mission!=='beacons'){ S.beacons = []; }
   camAng = S.ang; setInsideUI(false);
@@ -436,6 +442,7 @@ function update(dt){
         else if (d4 < 520 && !toastKey) toast('Szingularitás közelében – lépj el a W-tengelyen!', 'danger', 1.6);
         const wh = S.wh; if (Math.hypot(S.x-wh.x, S.y-wh.y, S.w-wh.w) < 170) exitOut();
       }
+    } else if (S.worm){ stepWorm(dt);
     } else if (S.alc){ stepAlc(dt);
     } else {
       // a játék órája a pilóta órája: egy valódi másodperc = egy hajó-másodperc; kint ennél γ/√(1−rs/r)-szer több idő telik
@@ -447,7 +454,7 @@ function update(dt){
       if (mode==='play'){
         if (!S.hit95 && S.beta>0.95){ S.hit95=true; toast('0,95 c – a csillagok előretorlódnak'); }
         if (!S.hit99 && S.beta>0.99){ S.hit99=true; toast('0,99 c – a hajóóra hétszer lassabb'); }
-        checkTwin();
+        checkTwin(); checkWorms();
         const tg = tidalG(r/RS);
         if (tg > HULL_G){ die('tidal'); }
         else if (r < RS) enterInside();
@@ -508,6 +515,7 @@ function draw(t){
   if (mode==='play' && !S.inside && r < 4*RS){ const q = (4*RS - r)/(3*RS); shx = (Math.random()-.5)*6*q; shy = (Math.random()-.5)*6*q; }
   V = {z, rot, cr:Math.cos(rot), sr:Math.sin(rot), cx:W/2+shx, cy:H*0.5+shy};
   ctx.globalCompositeOperation = 'source-over';
+  if (S.worm){ drawWormTransit(t); drawControls(t); return; }
   if (view==='cockpit'){ const rr = -(S.ang + Math.PI/2); V.rot = rr; V.cr = Math.cos(rr); V.sr = Math.sin(rr); drawCockpit(t); }
   else { if (S.inside) drawInside(t); else drawOutside(t); drawCommon(t); }
   if (S.alc || S.alcBlast>0) drawAlcOverlay(t);
@@ -594,7 +602,7 @@ function drawOutside(t){
     ctx.fillStyle = 'rgba(255,120,110,0.5)'; ctx.fillText('3 rs · nincs stabil pálya', bx, by - ISCO*z - 6); }
   ctx.setLineDash([2,4]); ctx.strokeStyle = 'rgba(255,240,200,0.35)'; ctx.beginPath(); ctx.arc(bx,by,1.5*RS*z,0,TAU); ctx.stroke(); ctx.setLineDash([]);
   if (z > 0.3){ ctx.fillStyle = 'rgba(255,240,200,0.6)'; ctx.fillText('fotongömb 1,5 rs', bx, by + 1.5*RS*z + 12); }
-  drawPlacesTop(t); drawAlcTop(t); drawErgoTop(t, bx, by); drawPairs(); drawGWTop(t); drawPulsarTop(t); drawHomeTop(t); drawPhotonsTop();
+  drawPlacesTop(t); drawWormsTop(t); drawAlcTop(t); drawErgoTop(t, bx, by); drawPairs(); drawGWTop(t); drawPulsarTop(t); drawHomeTop(t); drawPhotonsTop();
 
   // jeladók
   ctx.textAlign = 'center';
@@ -924,6 +932,7 @@ function drawCockpitInner(t){
   drawPlacesCockpit(t, f, hcx, hcy, fx, fy, rxv, ryv, aber, proj);
   drawGWCockpit(f, hcx, hcy, fx, fy, rxv, ryv, aber, proj, edgeMark);
   drawHomeCockpit(t, f, hcx, hcy, fx, fy, rxv, ryv, edgeMark);
+  drawWormsCockpit(t, f, hcx, hcy, fx, fy, rxv, ryv, edgeMark);
   for (const p of S.photons){ const n = p.pts.length; if (n<4) continue; ctx.strokeStyle = 'rgba(255,248,210,0.7)'; ctx.lineWidth = 1.4; ctx.beginPath(); let prev = null;
     for (let i=0;i<n;i+=2){ const rx = p.pts[i]-S.x, ry = p.pts[i+1]-S.y, a = rx*fx + ry*fy;
       const P = a>8 ? [hcx + f*(rx*rxv + ry*ryv)/a, hcy] : null; if (P && prev) { ctx.moveTo(prev[0],prev[1]+2); ctx.lineTo(P[0],P[1]+2); } prev = P; } ctx.stroke(); }
@@ -1107,7 +1116,7 @@ function drawControls(t){
     ctx.fillStyle = thr.on ? 'rgba(233,237,246,0.8)' : 'rgba(233,237,246,0.45)';
     ctx.fillRect(r.x + 6, r.cy - thr.v*(SLH/2-12) - 5, SLW - 12, 10);
   }
-  drawScope(); drawPenroseDiag(t);
+  if (!S.worm) drawScope(); drawPenroseDiag(t);
   if (S.ap && mode==='play'){ const d = Math.hypot(S.ap.x-S.x, S.ap.y-S.y) - S.ap.stop; ctx.font = '600 11px "IBM Plex Mono", monospace'; ctx.textAlign = 'center';
     ctx.fillStyle = 'rgba(200,175,255,0.95)'; ctx.fillText(`AUTOPILÓTA → ${S.ap.n} · ${fmtLy(Math.max(0,d))}`, W/2, H - SA.b - 22 - 132 - 12 - 44 - 10); }
   if (S.gwFlash>0 && !S.inside){ ctx.fillStyle = `rgba(220,210,255,${(S.gwFlash*0.12).toFixed(3)})`; ctx.fillRect(0,0,W,H); }
@@ -1135,6 +1144,7 @@ function drawRadar(){
     { const [gx,gy] = pt(S.gw.x,S.gw.y); rctx.fillStyle = 'rgba(255,170,120,0.9)'; rctx.beginPath(); rctx.arc(gx,gy,3,0,TAU); rctx.fill(); }
     for (const p of PLACES){ const [qx,qy] = pt(p.x,p.y); rctx.fillStyle = S.visited[p.id] ? 'rgba(200,210,230,0.35)' : 'rgba(255,225,170,0.9)'; rctx.save(); rctx.translate(qx,qy); rctx.rotate(Math.PI/4); rctx.fillRect(-2.2,-2.2,4.4,4.4); rctx.restore(); }
     if (S.mission==='twin'){ const [hx,hy] = pt(S.home.x,S.home.y); rctx.strokeStyle = '#78ffaa'; rctx.lineWidth = 1.5; rctx.beginPath(); rctx.arc(hx,hy,3.5,0,TAU); rctx.stroke(); }
+    { const [hx,hy,edge] = pt(WORM.x, WORM.y); rctx.strokeStyle = S.wormTo ? '#c9a6ff' : 'rgba(201,166,255,0.6)'; rctx.lineWidth = 1.5; rctx.beginPath(); rctx.arc(hx,hy,edge?3:4.5,0,TAU); rctx.stroke(); }
     { const [px,py] = pt(S.psr.x,S.psr.y); rctx.fillStyle = `rgba(240,245,255,${(0.5+S.psrFlash*0.5).toFixed(2)})`; rctx.beginPath(); rctx.arc(px,py,2.5+S.psrFlash*2,0,TAU); rctx.fill(); }
   }
   rctx.strokeStyle = S.inside ? 'rgba(190,150,255,0.35)' : 'rgba(120,255,170,0.3)'; rctx.lineWidth = 1;
@@ -1167,7 +1177,7 @@ function hud(){
     L('lErgo', rr < ERGO ? 'vio' : '');
     L('lGW', S.gwFlash > 0.05 ? 'alarm' : (S.gwA > 0.4 ? 'on' : ''));
     L('lAp', S.ap ? 'ok' : '');
-    L('lAlc', S.alc ? 'vio' : '');
+    L('lAlc', S.alc || S.worm ? 'vio' : '');
     L('lExo', S.exotic >= EXO_MAX ? 'ok' : (S.exotic > 0 ? 'on' : 'alarm'));
     L('l4D', S.inside ? (Math.hypot(S.x,S.y,S.w) < 520 ? 'alarm' : 'vio') : ''); }
   $('bAlc').classList.toggle('on', !!S.alc);
@@ -1752,6 +1762,7 @@ const PLACES = [
 ];
 for (const p of PLACES){
   p.x = Math.cos(p.ang)*p.ly*LY; p.y = Math.sin(p.ang)*p.ly*LY; p.pts = []; const R = p.R;
+  p.wx = p.x - Math.cos(p.ang)*R*0.6; p.wy = p.y - Math.sin(p.ang)*R*0.6;
   if (p.type==='nebula'){ const cs = ['255,80,110','255,80,110','80,220,200','120,150,255','255,140,120'];
     for (let i=0;i<80;i++) p.pts.push({dx:gauss()*R*0.55, dy:gauss()*R*0.55, dz:gauss()*R*0.25, r:R*(0.06+Math.random()*0.2), c:cs[i%cs.length], k:'blob'});
     for (let i=0;i<30;i++) p.pts.push({dx:gauss()*R*0.08, dy:gauss()*R*0.08, dz:gauss()*R*0.05, r:0, c:'210,230,255', k:'star'}); }
@@ -1829,6 +1840,146 @@ function drawPlacesTop(t){
     ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,236,200,0.9)'; ctx.fillText(p.n, cx, cy - Math.max(16, Math.min(R, H/3)) - 6); }
 }
 
+// ---- Féreglyuk: gömb, amely a túloldal egét mutatja; az átkelés a torok belső felszínén vezet ----
+const WORM = {x:-11000, y:-6000}, WR = 260, WT = 5;
+const PCOL = {star:'255,120,80', binary:'225,238,255', nebula:'255,90,120', snr:'140,255,180', cluster:'255,210,150', magnetar:'190,170,255', galaxy:'255,222,175'};
+const wormEl = document.getElementById('worm');
+function wormMouths(){ return [{id:'home', x:WORM.x, y:WORM.y}].concat(PLACES.map(p => ({id:p.id, x:p.wx, y:p.wy, place:p}))); }
+function mouthDest(m){ return m.id==='home' ? (S.wormTo ? PLACES.find(p => p.id===S.wormTo) : null) : 'home'; }
+const destCol = d => d==='home' ? '255,170,80' : (d ? PCOL[d.type] : '140,150,175');
+const destName = d => d==='home' ? 'Féreglyuk-kapu a lyuk mellett' : (d ? d.n : '');
+const wormAllowed = p => S.mission!=='tour' || !!S.visited[p.id];   // a körutat repülve kell bejárni; a kapu csak a már látott helyekre hangolható
+function openWorm(){ if (mode!=='play') return; if (S.inside){ toast('A 4D térben nem működik', 'vio'); return; } if (S.alc || S.worm) return;
+  wormEl.hidden = !wormEl.hidden; if (!wormEl.hidden){ sciEl.hidden = true; alcEl.hidden = true; renderWorm(); } }
+function renderWorm(){
+  document.getElementById('wormList').innerHTML = PLACES.map(p => { const ok = wormAllowed(p);
+    return `<button type="button" class="tgt" data-id="${p.id}"${ok ? '' : ' disabled style="opacity:.45;cursor:default"'}><span>${S.wormTo===p.id ? '◉ ' : ''}${p.n}${S.visited[p.id] ? ' ✓' : ''}</span><span>${ok ? fmtLy(Math.hypot(p.x, p.y)) : 'előbb repülj oda'}</span></button>`; }).join('');
+  document.getElementById('wormList').querySelectorAll('button:not([disabled])').forEach(b => b.onclick = () => { S.wormTo = b.dataset.id; wormEl.hidden = true;
+    toast(`Féreglyuk hangolva: ${PLACES.find(p => p.id===S.wormTo).n} · repülj a lila gömbbe`, 'vio', 3); });
+}
+function checkWorms(){
+  for (const m of wormMouths()){ const d = Math.hypot(S.x - m.x, S.y - m.y); if (d > WR*6) { if (m.id==='home') S.wormAsked = false; continue; }
+    if (m.id==='home' && !S.wormTo && !S.wormAsked && d < WR*3.5){ S.wormAsked = true; if (wormEl.hidden) openWorm(); toast('Féreglyuk-kapu · válassz célt', 'vio', 2.4); }
+    if (d < WR*0.8){ const dest = mouthDest(m);
+      if (!dest){ const ux = (S.x - m.x)/(d || 1), uy = (S.y - m.y)/(d || 1); S.x = m.x + ux*WR*0.82; S.y = m.y + uy*WR*0.82; S.px = ux*0.02*C; S.py = uy*0.02*C;
+        toast('Hangolatlan féreglyuk – a torok zárva. Válassz célt (H).', 'danger', 2.4); if (wormEl.hidden) openWorm(); return; }
+      startWorm(m, dest); return; } } }
+function startWorm(m, dest){
+  const to = dest==='home' ? {x:WORM.x, y:WORM.y, ox:0, oy:0} : {x:dest.wx, y:dest.wy, ox:dest.x, oy:dest.y};
+  // a kiinduló oldal színe: a kapuból indulva a lyuk környéke, a helyekről indulva a hely
+  S.worm = {t:0, T:WT, to, name:destName(dest), fromCol: m.id==='home' ? '255,170,80' : PCOL[m.place.type], toCol:destCol(dest), dest};
+  S.ap = null; wormEl.hidden = true; alcEl.hidden = true; S.thrust = 0;
+  toast(`Belépés a torokba → ${S.worm.name}`, 'vio', 2.2);
+}
+function stepWorm(dt){
+  const w = S.worm; w.t += dt; S.tE += dt; S.tau += dt;   // a szájak egymáshoz képest nyugszanak: a két óra együtt jár
+  S.gamma = 1; S.beta = 0; S.rate = 1; S.thrust = 0; S.dtc = dt;
+  if (w.t < w.T) return;
+  const to = w.to, dx = to.ox - to.x, dy = to.oy - to.y, dd = Math.hypot(dx, dy) || 1, ux = dx/dd, uy = dy/dd;
+  S.x = to.x + ux*WR*1.5; S.y = to.y + uy*WR*1.5; S.px = ux*0.03*C; S.py = uy*0.03*C; S.vx = S.px; S.vy = S.py;
+  S.ang = Math.atan2(uy, ux); camAng = S.ang; S.camx = S.x; S.camy = S.y; S.trail = []; S.worm = null; S.flash = 0.6; S.wormAsked = true;
+  if (mode==='play') checkPlaces(S.x, S.y);
+  toast(w.dest==='home' ? 'Visszaértél a kapuhoz – a lyuk előtted' : `Kiléptél: ${w.name}`, 'vio', 3);
+  if (!S.wormSeen){ S.wormSeen = true; if (discEl.hidden){ document.getElementById('discTag').textContent = 'Jelenség · Morris–Thorne-féreglyuk';
+    document.getElementById('discT').textContent = 'Átkeltél egy féreglyukon';
+    document.getElementById('discP').textContent = 'A torokban a tér két távoli tartománya összeér: a gömb belső felszínén haladva az egyik ég fokozatosan átfordul a másikba. A féreglyuk az általános relativitáselmélet megengedett megoldása, de nyitva tartásához egzotikus anyag kell, és a természetben eddig egyet sem találtak.';
+    discEl.hidden = false; discTimer = 14; } }
+}
+// a szájak: kristálygömb, benne a túloldal ege, a peremén összenyomott, lencsézett háttér
+const WMS = []; for (let i=0;i<150;i++) WMS.push({u:Math.random(), a:Math.random()*TAU, b:0.4+Math.random()*0.6, w:Math.random()});
+function drawMouth(x, y, rp, m, t){
+  const d = mouthDest(m), col = destCol(d), tuned = !!d;
+  ctx.globalCompositeOperation = 'lighter';
+  const halo = ctx.createRadialGradient(x,y,rp,x,y,rp*1.9); halo.addColorStop(0,'rgba(210,220,255,0.18)'); halo.addColorStop(0.3,`rgba(${col},0.06)`); halo.addColorStop(1,'rgba(200,210,255,0)');
+  ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(x,y,rp*1.9,0,TAU); ctx.fill();
+  // a háttér csillagai a gömb körül: érintő irányú ívekké nyúlnak (Einstein-gyűrű)
+  for (let i=0;i<40;i++){ const s = WMS[i], rr = rp*(1.04 + s.u*0.5), a = s.a + t*0.00004, L = 0.25*(1.55 - rr/rp);
+    ctx.strokeStyle = `rgba(220,228,255,${(0.35*s.b*(1.6 - rr/rp)).toFixed(3)})`; ctx.lineWidth = Math.max(0.7, rp*0.012); ctx.beginPath(); ctx.arc(x,y,rr,a,a+L); ctx.stroke(); }
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.save(); ctx.beginPath(); ctx.arc(x,y,rp,0,TAU); ctx.clip();
+  ctx.fillStyle = '#04050b'; ctx.fillRect(x-rp,y-rp,rp*2,rp*2);
+  ctx.globalCompositeOperation = 'lighter';
+  if (tuned){
+    // a túloldal: a célobjektum fénye kissé elcsúszva, a csillagok a perem felé sűrűsödnek
+    const ox = x + Math.cos(t*0.0003)*rp*0.12, oy = y + Math.sin(t*0.0004)*rp*0.1;
+    const g = ctx.createRadialGradient(ox,oy,0,ox,oy,rp*0.75); g.addColorStop(0,`rgba(${col},0.75)`); g.addColorStop(0.35,`rgba(${col},0.25)`); g.addColorStop(1,`rgba(${col},0)`);
+    ctx.fillStyle = g; ctx.fillRect(x-rp,y-rp,rp*2,rp*2);
+    for (const s of WMS){ const rr = rp*(1 - Math.pow(1 - Math.sqrt(s.u), 1.8)), a = s.a - t*0.00006;
+      ctx.fillStyle = s.w < 0.5 ? `rgba(230,236,255,${(0.9*s.b).toFixed(3)})` : `rgba(${col},${(0.9*s.b).toFixed(3)})`; const sz = Math.max(1, rp*0.012*(1.4 - rr/rp));
+      ctx.fillRect(x + Math.cos(a)*rr, y + Math.sin(a)*rr, sz, sz); }
+    if (d==='home'){ ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(ox,oy,rp*0.16,0,TAU); ctx.fill();
+      ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = 'rgba(255,190,120,0.9)'; ctx.lineWidth = Math.max(1, rp*0.03); ctx.beginPath(); ctx.arc(ox,oy,rp*0.17,0,TAU); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,150,70,0.5)'; ctx.beginPath(); ctx.ellipse(ox,oy,rp*0.42,rp*0.05,0,0,TAU); ctx.stroke(); }
+  } else {
+    for (let i=0;i<60;i++){ const s = WMS[i], rr = rp*Math.sqrt(s.u), a = s.a + t*0.002*(s.w - 0.5);
+      ctx.fillStyle = `rgba(150,160,190,${(0.35*s.b).toFixed(3)})`; ctx.fillRect(x + Math.cos(a)*rr, y + Math.sin(a)*rr, 1.2, 1.2); }
+  }
+  // gömbhatás: sötétedő perem és csillogás
+  ctx.globalCompositeOperation = 'source-over';
+  const sh = ctx.createRadialGradient(x,y,rp*0.55,x,y,rp); sh.addColorStop(0,'rgba(0,0,0,0)'); sh.addColorStop(1,'rgba(0,0,0,0.55)'); ctx.fillStyle = sh; ctx.fillRect(x-rp,y-rp,rp*2,rp*2);
+  ctx.restore();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = 'rgba(235,240,255,0.75)'; ctx.lineWidth = Math.max(1, rp*0.015); ctx.beginPath(); ctx.arc(x,y,rp,0,TAU); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = Math.max(1, rp*0.03); ctx.beginPath(); ctx.arc(x,y,rp*0.86,Math.PI*1.1,Math.PI*1.45); ctx.stroke();
+  ctx.globalCompositeOperation = 'source-over';
+}
+function mouthLabel(m){ const d = mouthDest(m); return m.id==='home' ? (d ? `FÉREGLYUK → ${d.n}` : 'FÉREGLYUK · hangolatlan (H)') : 'FÉREGLYUK → vissza a kapuhoz'; }
+function drawWormsTop(t){
+  for (const m of wormMouths()){ const [x,y] = toS(m.x, m.y), rp = Math.max(9, WR*V.z); if (x < -rp*2 || x > W+rp*2 || y < -rp*2 || y > H+rp*2) continue;
+    drawMouth(x, y, rp, m, t); ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(215,195,255,0.9)'; ctx.fillText(mouthLabel(m), x, y - rp*1.25 - 8); }
+}
+function drawWormsCockpit(t, f, hcx, hcy, fx, fy, rxv, ryv, edgeMark){
+  for (const m of wormMouths()){ const rx = m.x - S.x, ry = m.y - S.y, d = Math.hypot(rx, ry), a = rx*fx + ry*fy;
+    if (m.id!=='home' && d > 60000) continue;
+    const x = a > 20 ? hcx + f*(rx*rxv + ry*ryv)/a : -1e5, rp = Math.max(4, f*WR/Math.max(a, 1));
+    if (a <= 20 || x < -rp || x > W + rp){ if (m.id==='home' && d < 40000) edgeMark(Math.atan2(ry, rx), 'FÉREG', 'rgba(201,166,255,0.9)', hcy + 60); continue; }
+    if (rp > Math.max(W,H)*1.5) continue;
+    drawMouth(x, hcy, rp, m, t); ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(215,195,255,0.9)';
+    ctx.fillText(`${mouthLabel(m)} · ${d < 1000 ? Math.round(d) : fmt(d/1000) + 'k'}`, x, hcy - rp*1.3 - 10); }
+}
+// átkelés: a torok belső felszínén haladunk – a gömbfelszín körbeölel, előttünk a cél ege tágul
+const WWS = []; for (let i=0;i<650;i++) WWS.push({th:Math.random()*TAU, z0:Math.random(), side:Math.random(), b:0.4+Math.random()*0.6});
+const mixC = (a, b, q) => { const A = a.split(',').map(Number), B = b.split(',').map(Number); return A.map((v,i) => Math.round(v + (B[i]-v)*q)).join(','); };
+function drawWormTransit(t){
+  const w = S.worm, p = clamp(w.t/w.T, 0, 1), cx = W/2, cy = H*0.46, M = Math.max(W,H), K = M*0.07;
+  const travel = p*p*(3 - 2*p)*2.4, rot = t*0.00012 + p*1.6, sq = 0.8;
+  ctx.fillStyle = '#020207'; ctx.fillRect(0,0,W,H);
+  ctx.globalCompositeOperation = 'lighter';
+  // a felszín sávjai: ahogy haladunk, felénk áramlanak; a távoliak már a cél színét viselik
+  for (let i=0;i<30;i++){ const z = (((i/30) - travel) % 1 + 1) % 1 + 0.03, rr = K/z; if (rr > M*1.4) continue;
+    const q = clamp(p*1.7 - 0.35 + z*0.5, 0, 1), col = mixC(w.fromCol, w.toCol, q), al = clamp(0.32*(1 - z)*Math.min(1, rr/(M*0.12)), 0, 0.3);
+    ctx.fillStyle = `rgba(${col},${(al*0.25).toFixed(3)})`; ctx.strokeStyle = `rgba(${col},${al.toFixed(3)})`; ctx.lineWidth = Math.max(1, 5*(1 - z));
+    ctx.beginPath(); for (let k=0;k<=56;k++){ const th = k/56*TAU, wob = 1 + 0.05*Math.sin(th*4 + rot*3 + i*0.7);
+      const X = cx + Math.cos(th)*rr*wob, Y = cy + Math.sin(th)*rr*sq*wob; if (k) ctx.lineTo(X,Y); else ctx.moveTo(X,Y); } ctx.stroke(); }
+  // hosszanti geodetikusok: csavarodva futnak a cél felé
+  for (let i=0;i<14;i++){ const a0 = i/14*TAU + rot; ctx.strokeStyle = `rgba(${mixC(w.fromCol, w.toCol, p)},0.10)`; ctx.lineWidth = 1; ctx.beginPath();
+    for (let k=0;k<=26;k++){ const z = 0.03 + k/26, rr = K/z, th = a0 + 0.5*Math.log(1/z); const X = cx + Math.cos(th)*rr, Y = cy + Math.sin(th)*rr*sq; if (k) ctx.lineTo(X,Y); else ctx.moveTo(X,Y); } ctx.stroke(); }
+  // a felszínre vetült két ég csillagai: az indulásié elhalványul, a célé előtűnik
+  for (const s of WWS){ const z = (((s.z0 - travel) % 1) + 1) % 1 + 0.03, rr = K/z; if (rr > M) continue;
+    const fromSide = s.side < 0.5, al = (fromSide ? (1 - p) : p)*s.b*clamp((1 - z)*1.3, 0, 1); if (al < 0.03) continue;
+    const th = s.th + rot + 0.5*Math.log(1/z), sz = clamp(2.2*(1 - z) + 0.6, 0.6, 2.8);
+    ctx.fillStyle = `rgba(${fromSide ? mixC(w.fromCol, '235,240,255', 0.5) : mixC(w.toCol, '235,240,255', 0.5)},${al.toFixed(3)})`;
+    ctx.fillRect(cx + Math.cos(th)*rr, cy + Math.sin(th)*rr*sq, sz, sz); }
+  // a kijárat: a túloldal ege egyre nagyobb körben
+  const er = 10 + Math.pow(p, 2.6)*M*0.75, eg = ctx.createRadialGradient(cx,cy,0,cx,cy,er);
+  eg.addColorStop(0,'rgba(245,248,255,0.9)'); eg.addColorStop(0.3,`rgba(${w.toCol},0.55)`); eg.addColorStop(1,`rgba(${w.toCol},0)`);
+  ctx.fillStyle = eg; ctx.fillRect(0,0,W,H);
+  // a torok: félúton a két felszín találkozik
+  const thr = Math.exp(-Math.pow((p - 0.5)/0.07, 2));
+  if (thr > 0.02){ ctx.strokeStyle = `rgba(235,225,255,${(0.6*thr).toFixed(3)})`; ctx.lineWidth = 2 + 6*thr; ctx.beginPath(); ctx.ellipse(cx, cy, M*0.35, M*0.35*sq, 0, 0, TAU); ctx.stroke(); }
+  ctx.globalCompositeOperation = 'source-over';
+  const vg = ctx.createRadialGradient(cx,cy,M*0.25,cx,cy,M*0.75); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.6)'); ctx.fillStyle = vg; ctx.fillRect(0,0,W,H);
+  if (p > 0.9){ ctx.fillStyle = `rgba(245,240,255,${((p - 0.9)/0.1*0.8).toFixed(3)})`; ctx.fillRect(0,0,W,H); }
+  // kijelző
+  const bw = Math.min(260, W*0.6), bx = cx - bw/2, by = cy + 96;
+  ctx.font = '600 11px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(230,220,255,0.95)';
+  ctx.fillText(`FÉREGLYUK-ÁTKELÉS → ${w.name}`, cx, by - 10);
+  ctx.strokeStyle = 'rgba(200,170,255,0.6)'; ctx.lineWidth = 1; ctx.strokeRect(bx, by, bw, 6); ctx.fillStyle = 'rgba(200,170,255,0.85)'; ctx.fillRect(bx+1, by+1, (bw-2)*p, 4);
+  ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(bx + bw/2, by - 3, 1, 12);
+  ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.fillStyle = 'rgba(205,195,235,0.8)';
+  ctx.fillText(p < 0.45 ? 'a torok felé · mögötted az indulás ege' : (p < 0.55 ? 'TOROK · a két tér itt ér össze' : 'kifelé · előtted a cél ege'), cx, by + 20);
+}
+
 // ---- Alcubierre-hajtómű: a téridő maga mozog, a hajó a buborékban szabadon esik ----
 const ALC_SPEEDS = [10, 1e3, 1e5, 1e7];
 let alcSpeedIdx = 1;
@@ -1853,7 +2004,7 @@ function renderAlc(){
   document.getElementById('alcList').querySelectorAll('button').forEach(b => b.onclick = () => engageAlc(b.dataset.id));
   document.getElementById('alcFuel').textContent = alcFuelText();
 }
-function openAlc(){ if (mode!=='play') return; if (S.inside){ toast('A 4D térben nem működik', 'vio'); return; }
+function openAlc(){ if (mode!=='play' || S.worm) return; if (S.inside){ toast('A 4D térben nem működik', 'vio'); return; }
   if (S.alc){ // a leállás előre beprogramozott pontokon történik: a buborék falának belülről nem lehet jelet küldeni
     const a = S.alc; if (!a.abort){ a.abort = true; a.left = Math.min(a.left, a.v*C*0.8); toast('Leállás a következő előre beprogramozott ponton', 'vio', 2.4); } return; }
   alcEl.hidden = !alcEl.hidden; if (!alcEl.hidden){ sciEl.hidden = true; renderAlc(); } }
@@ -1984,7 +2135,7 @@ function apControl(dt){
 const mapEl = document.getElementById('map'), mapC = document.getElementById('mapC'), mctx = mapC.getContext('2d');
 let mapSel = null, mapHits = [];
 function openMap(){ if (mode!=='play') return; if (S.inside){ toast('A 4D térben nincs térkép', 'vio'); return; }
-  mapEl.hidden = !mapEl.hidden; if (!mapEl.hidden){ sciEl.hidden = true; alcEl.hidden = true; mapSel = null; drawMap(); updateApInfo(); } }
+  mapEl.hidden = !mapEl.hidden; if (!mapEl.hidden){ sciEl.hidden = true; alcEl.hidden = true; wormEl.hidden = true; mapSel = null; drawMap(); updateApInfo(); } }
 function mapR(d, half){ const k = (half - 26)/9; return d < 1000 ? 12*d/1000 + 6 : 18 + k*Math.log10(d/1000); }
 function drawMap(){
   if (mapEl.hidden) return;
@@ -2028,7 +2179,8 @@ document.getElementById('bAlc').addEventListener('click', openAlc);
   setHud(full); hudEl.addEventListener('click', () => setHud(!hudEl.classList.contains('full')));
   hudEl.addEventListener('keydown', e => { if (e.key==='Enter'){ e.preventDefault(); hudEl.click(); } }); }
 document.getElementById('alcX').addEventListener('click', () => { alcEl.hidden = true; });
-addEventListener('keydown', e => { if (e.code==='KeyB' && mode==='play') openAlc(); });
+addEventListener('keydown', e => { if (e.code==='KeyB' && mode==='play') openAlc(); if (e.code==='KeyH' && mode==='play') openWorm(); });
+document.getElementById('wormX').addEventListener('click', () => { wormEl.hidden = true; });
 
 // ---- Képernyők ----
 const ov = $('ov'), card = $('card');
@@ -2044,6 +2196,7 @@ function showMenu(){
     <li>A <b>warp</b> a fénysebesség felé tol, de c-t soha nem éred el.</li>
     <li>A lyuk forog: az <b>ergoszférában</b> a FOTON gomb LEDOBÁS lesz – a forgás irányába repülve dobd hátra a rakományt, és energiát nyersz (Penrose-folyamat). Messze egy kettős lyuk spirálozik egymás felé: a detektor mutatja a gravitációs hullámait.</li>
     <li><b>ALCUBIERRE</b>: térhajtómű – a téridő viszi a hajót, akár a fény tízmilliószorosával, időtágulás nélkül. Legfeljebb három töltet egzotikus anyagod van, a Casimir-gyűjtő 12 másodpercenként pótol egyet.</li>
+    <li><b>Féreglyuk</b> (H): a radaron lila kör jelzi. Hangold egy távoli helyre, és repülj bele a gömbbe – egy pillanat alatt átjutsz.</li>
     <li><b>FOTON</b>: fényt lősz ki, a pályáját az általános relativitáselmélet egyenlete számolja. <b>TUDOMÁNY</b>: élő mérések, és a lyuk tömege is állítható. Keresd meg a pulzárt is.</li>
     <li>Az eseményhorizonton túl egy <b>négydimenziós tér</b> vár. Ott a W-tengelyen is mozoghatsz: keresd meg a fehér lyukat, és kerüld el a szingularitást. Itt hat valódi elmélet játszható változata rejtőzik: féregjárat, Kerr-gyűrű, bébi-univerzum és mások. A műszerfalon Penrose-diagram mutatja, hol vagy a téridőben.</li>
   </ul>`;

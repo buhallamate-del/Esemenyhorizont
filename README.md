@@ -20,6 +20,12 @@ A játék küldetésenként megjegyzi az öt legjobb (legrövidebb hajóidejű) 
 
 ## Változások
 
+### 1.4 – 2026. november 17.
+- Féreglyuk (H): a lyuk mellett egy kapu, amely bármelyik távoli helyre hangolható; minden helyen ott a visszavezető száj. Az Interstellar mintájára gömbként látszik, benne a túloldal egével és a peremén lencsézett háttérrel.
+- Átkelés-nézet: a torok belső felszínén haladsz, az indulás ege elhalványul, a célé kitágul; félúton a torok.
+- A Csillagközi körútban a kapu csak a már felkeresett helyekre hangolható, hogy a küldetést továbbra is repülve kelljen teljesíteni.
+- Az értesítések nem írják felül a nyitott kártyák szövegét.
+
 ### 1.3 – 2026. november 17.
 - Irányítópultosabb kezelőfelület: MFD-kijelző kerettel, nyolclámpás hibajelző sor (GRAV, ÁRAPÁLY, ERGO, GW, AUTOP, BUBORÉK, EGZOT, 4D), radar iránylépték és pásztázó sugár, fizikai gombok LED-del, részletesebb pilótafülke-konzol.
 - Új térhajtómű-nézet a pilótafülkében: csillagcsíkok, hullámzó téridő-gyűrűk, buborékfal, haladásjelző a szélvédőn.
