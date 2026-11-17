@@ -139,6 +139,9 @@ body{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px
 .mbtn i{font-style:normal;font-size:10.5px;color:#78ffaa}
 .mbtn:hover,.mbtn:focus-visible{border-color:var(--plasma);outline:none;background:rgba(255,176,74,.08)}
 .rec{color:#78ffaa}
+.top ol{margin:6px 0 0;padding-left:20px;font-size:12px;line-height:1.7;color:#c3c9d8;font-variant-numeric:tabular-nums}
+.top li span{color:var(--dim)}
+.top li.me{color:#78ffaa}
 .go.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}
 .card .small{font-size:12px;color:var(--dim)}
 .go:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
@@ -253,8 +256,8 @@ function reset(){
   S = { x:r0, y:0, w:0, px:0, py:-v0*g0, vx:0, vy:-v0, ang:-Math.PI/2, tE:0, tau:0, energy:100, beta:0, gamma:1, rate:1, rmin:r0,
         gmax:1, hit95:false, hit99:false, trail:[], parts:[], beacons, collected:0, camx:r0, camy:0, zoom:0.3, thrust:0,
         dead:false, inside:false, visits:0, wh:null, hypers:[], enterT:0, flash:0,
-        photons:[], pairs:[], fired:0, captured:0, psr:{x:-9000, y:12500}, psrPhase:0, psrFlash:0, theories:{}, visited:{}, ap:null, exotic:EXO_MAX, casimir:0, ending:false, alc:null, alcBlast:0, zn:null, anti:false, loop:false, cl:1,
-        mission, home:{x:r0, y:0}, twinReady:false, cargo:3, cargoObjs:[], penrose:0, gw:newGW(), gwBuf:[], hw:0, gwA:0, gwOm:0, gwFlash:0 };
+        photons:[], pairs:[], fired:0, captured:0, psr:{x:-9000, y:12500}, psrPhase:0, psrFlash:0, theories:{}, visited:{}, ap:null, exotic:EXO_MAX, casimir:0, ending:false, gwCaught:null, gwMissed:null, gwWarned:false, alc:null, alcBlast:0, zn:null, anti:false, loop:false, cl:1,
+        mission, home:{x:r0, y:0}, twinReady:false, cargo:mission==='penrose' ? PEN_CARGO : 3, cargoObjs:[], penrose:0, gw:newGW(), gwBuf:[], hw:0, gwA:0, gwOm:0, gwFlash:0 };
   if (mission!=='beacons'){ S.beacons = []; }
   camAng = S.ang; setInsideUI(false);
 }
@@ -1338,7 +1341,7 @@ function stepGW(dt){
   const h = S.gwA*Math.cos(2*e.phi);
   S.hw = clamp(h*0.03, -0.035, 0.035);
   S.gwBuf.push(h + (Math.random()-.5)*0.003); if (S.gwBuf.length > 140) S.gwBuf.shift();
-  if (prevTr < g.mergeClock && tr >= g.mergeClock && mode==='play'){ S.gwFlash = 1;
+  if (prevTr < g.mergeClock && tr >= g.mergeClock && mode==='play'){ S.gwFlash = 1; if (d < GW_WIN_D) S.gwCaught = d; else if (S.mission==='gw') S.gwMissed = d;
     if (d < 16000) toast('Összeolvadás! A tömeg kb. 5%-a gravitációs hullámként sugárzott szét – a hullám fénysebességgel ért ide', 'vio', 4); }
   S.gwFlash = Math.max(0, S.gwFlash - dt*0.8);
 }
@@ -1416,6 +1419,7 @@ function dropCargo(){
   if (S.inside || mode!=='play') return;
   if (S.cargo <= 0){ toast('Nincs több rakomány', 'danger'); return; }
   const r = r0(), tx = -S.y/r, ty = S.x/r, bx = -Math.cos(S.ang), by = -Math.sin(S.ang);
+  if (r >= ERGO){ toast(`Csak az ergoszférán belül működik (${fmt(ERGO/RS,1)} rs-en belül)`, 'danger', 2.4); return; }   // kint nem pazarol rakományt
   S.cargo--;
   const o = {x:S.x + bx*12, y:S.y + by*12, vx:S.vx + bx*500, vy:S.vy + by*500, neg:false};
   S.cargoObjs.push(o);
@@ -1425,7 +1429,7 @@ function dropCargo(){
       S.penrose++; S.flash = 0.35;
       toast(`Penrose-folyamat · negatív energiájú rakomány zuhant be · +${fmt(eta*100,1)}% energia a lyuk forgásából`, 'vio', 3.4); }
     else toast('A forgás irányába repülj, és úgy dobd hátra a rakományt', 'danger', 2.6);
-  } else toast(`Csak az ergoszférán belül működik (${fmt(ERGO/RS,1)} rs-en belül)`, 'danger', 2.4);
+  }
 }
 function stepCargo(dt){
   for (const o of S.cargoObjs){ if (o.gone) continue;
@@ -1500,22 +1504,29 @@ function drawHomeCockpit(t, f, hcx, hcy, fx, fy, rxv, ryv, edgeMark){
 }
 
 // ---- Küldetések ----
-const FUT_E = 1e6*365.25, FUT_TAU = 30, PEN_N = 3, PEN_R = 30*RS;
+const FUT_E = 1e6*365.25, FUT_TAU = 30, PEN_N = 3, PEN_R = 30*RS, PEN_CARGO = 5, GW_WIN_D = 3000;
 const MISSIONS = {
   beacons:{n:'Jeladók', d:'Gyűjtsd be az öt jeladót a lyuk körül.', t:'Jeladók a radaron – kék pontok'},
   twin:{n:'Ikerparadoxon', d:'Térj haza a Föld-kapuhoz: a Földön legalább 2 év teljen el, és négyszer annyi, mint neked.', t:'Ikerparadoxon · cél: Föld ≥ 2 év és ≥ 4× a hajóidő, aztán vissza a zöld kapuhoz'},
   tour:{n:'Csillagközi körút', d:'Keresd fel mind a hét távoli helyet a Proximától az Andromedáig. Alcubierre vagy autopilóta – te döntöd el, melyik órát áldozod.', t:'Csillagközi körút · B: Alcubierre, M: térkép és autopilóta'},
   future:{n:'Ugrás a jövőbe', d:'A Földön teljen el 1 millió év, a hajón legfeljebb 30 nap. Siess: a játékban minden másodperc egy hajónap. A buborék itt nem segít: abban nincs időtágulás.', t:'Ugrás a jövőbe · Föld ≥ 1 millió év, hajó ≤ 30 nap'},
   theory:{n:'Elmélet-vadász', d:'Ugorj át a horizonton, fedezd fel mind a hat elméletet a 4D térben, és juss ki egy fehér lyukon.', t:'Elmélet-vadász · a lyukba kell bemenned'},
-  penrose:{n:'Penrose-bánya', d:'Mindhárom rakománnyal nyerj energiát az ergoszférában, aztán szökj el 30 rs-en túlra.', t:'Penrose-bánya · ergoszféra 1,6 rs-en belül · a forgás irányába repülve dobj hátra'},
+  gw:{n:'Hullámvadász', d:'Légy 3000 egységen belül a kettős lyuktól, amikor az összeolvadás hulláma eléri a hajót. Figyeld a GW-detektort: a csiripelés egyre gyorsul.', t:'Hullámvadász · narancs pont a radaron · légy közel, amikor a hullám ideér'},
+  penrose:{n:'Penrose-bánya', d:'Öt rakományból háromszor nyerj energiát az ergoszférában, aztán szökj el 30 rs-en túlra. Egy menetbe csak egy ledobás fér bele.', t:'Penrose-bánya · ergoszféra 1,6 rs-en belül · a forgás irányába repülve dobj hátra'},
 };
 let records = {}; try{ records = JSON.parse(localStorage.getItem('eh-rec') || '{}') || {}; }catch(_){}
+let tops = {}; try{ tops = JSON.parse(localStorage.getItem('eh-top') || '{}') || {}; }catch(_){}
+function topTable(m, cur){   // a legjobb öt teljesítés küldetésenként, ezen az eszközön
+  const L = tops[m] || []; if (!L.length) return '';
+  return `<div class="top"><div class="eyebrow">Rekordtábla · ezen az eszközön</div><ol>${L.map((e,i) => `<li${i===cur ? ' class="me"' : ''}>${tfmt(e.tau)} hajó · ${tfmt(e.tE)} Föld <span>· ${e.d}</span></li>`).join('')}</ol></div>`; }
 function missionHud(){
   const m = S.mission;
   if (m==='twin'){ const rt = twinRatio(); return ['Ikerarány', (isFinite(rt) ? fmt(rt,2) : '∞') + '× · cél 4×', S.twinReady ? 'blue' : '']; }
   if (m==='tour') return ['Helyek', `${Object.keys(S.visited).length} / ${PLACES.length}`, ''];
   if (m==='future'){ const left = FUT_TAU - S.tau; return ['Hajó-keret', `${fmt(Math.max(0,left),0)} nap · cél 1 M év`, left < 10 ? 'warn' : '']; }
   if (m==='theory') return ['Elméletek', `${thCount()} / ${TH_N}`, S.inside ? 'vio' : ''];
+  if (m==='gw'){ const g = S.gw, d = Math.hypot(S.x-g.x, S.y-g.y), ph = g.state==='in' ? `spirál ${Math.round(g.t/g.T*100)}%` : (g.state==='ring' ? 'lecsengés' : 'csend');
+    return ['Kettős lyuk', `${fmt(d/1000,1)}k / 3k · ${ph}`, d < GW_WIN_D ? 'blue' : '']; }
   if (m==='penrose') return ['Penrose', S.penrose >= PEN_N ? `${PEN_N}/${PEN_N} · szökj 30 rs-en túlra` : `${S.penrose} / ${PEN_N} · rakomány ${S.cargo}`, S.penrose >= PEN_N ? 'blue' : ''];
   return ['Jeladók', `${S.collected} / ${S.beacons.length}`, ''];
 }
@@ -1525,6 +1536,7 @@ function missionStat(){
   if (m==='tour') return ['Teljesítve', `${Object.keys(S.visited).length} / ${PLACES.length} hely`];
   if (m==='future') return ['Hajó-keret', `${fmt(S.tau,1)} / ${FUT_TAU} nap`];
   if (m==='theory') return ['Teljesítve', `${thCount()} / ${TH_N} elmélet`];
+  if (m==='gw') return ['Távolság az összeolvadáskor', S.gwCaught!=null ? `${fmt(S.gwCaught/1000,2)}k egység` : '–'];
   if (m==='penrose') return ['Sikeres ledobás', `${S.penrose} / ${PEN_N}`];
   return ['Jeladók', `${S.collected} / ${S.beacons.length}`];
 }
@@ -1534,7 +1546,10 @@ function endMission(won, title, text, delay=600){
   setTimeout(() => { let rec = '';
     if (won){ const prev = records[S.mission]; if (prev==null || S.tau < prev){ records[S.mission] = S.tau; try{ localStorage.setItem('eh-rec', JSON.stringify(records)); }catch(_){}
       rec = prev==null ? ' <b class="rec">Első teljesítés!</b>' : ` <b class="rec">Új rekord – az előző ${tfmt(prev)} hajóidő volt.</b>`; } }
-    endCard(title, text + rec); }, delay);
+    let cur = -1;
+    if (won){ const e = {tau:S.tau, tE:S.tE, d:new Date().toLocaleDateString('hu-HU')}; const L = (tops[S.mission] || []).concat([e]).sort((a,b) => a.tau - b.tau).slice(0,5);
+      cur = L.indexOf(e); tops[S.mission] = L; try{ localStorage.setItem('eh-top', JSON.stringify(tops)); }catch(_){} }
+    endCard(title, text + rec, topTable(S.mission, cur)); }, delay);
 }
 function checkMission(){
   const m = S.mission; if (S.ending) return;
@@ -1546,9 +1561,13 @@ function checkMission(){
   }
   else if (m==='theory' && thCount() >= TH_N)
     endMission(true, 'Mind a hat elmélet megvan', `${S.visits}× jártál a horizonton túl. A hajón ${tfmt(S.tau)} telt el, a Földön ${tfmt(S.tE)}. A valódi lyuk belsejéről egyik elmélet sem bizonyított – ezért izgalmas.`, 2500);
+  else if (m==='gw'){
+    if (S.gwCaught!=null) endMission(true, 'Elkaptad a csiripelést', `${fmt(S.gwCaught/1000,1)} ezer egységről érzékelted az összeolvadást. 2015. szeptember 14-én a LIGO pontosan ilyen jelet fogott: egy 36 és egy 29 naptömegű lyuk olvadt össze 1,3 milliárd fényévre, és kb. 3 naptömegnyi energia sugárzott szét gravitációs hullámként – a csúcson erősebben, mint a megfigyelhető univerzum összes csillaga együtt. A Földön ez 10⁻²¹-es relatív nyúlást okozott.`, 1500);
+    else if (S.gwMissed!=null && !S.gwWarned){ S.gwWarned = true; toast(`Túl messze voltál (${fmt(S.gwMissed/1000,1)}k) – a következő összeolvadás kb. fél perc csend után indul`, 'danger', 4); }
+  }
   else if (m==='penrose'){
     if (S.penrose >= PEN_N && !S.inside && r0() > PEN_R) endMission(true, 'Energiát nyertél egy fekete lyukból', `Három rakomány zuhant be negatív energiával, és a lyuk forgásából vett energiával szöktél el. Roger Penrose 1969-ben írta le ezt; egy valódi forgó lyuk tömeg-energiájának legfeljebb kb. 29%-a nyerhető ki így. A hajón ${tfmt(S.tau)} telt el.`);
-    else if (S.cargo <= 0 && S.penrose < PEN_N) endMission(false, 'Elfogyott a rakomány', `${S.penrose} sikeres ledobás a háromból. A Penrose-folyamathoz az ergoszférán belül (1,6 rs) kell lenned, és a forgás irányába repülve hátrafelé kell dobnod – így a rakomány energiája a végtelenből nézve negatív lesz.`, 1500);
+    else if (S.cargo < PEN_N - S.penrose) endMission(false, 'Nem maradt elég rakomány', `${S.penrose} sikeres ledobás a háromból, ${S.cargo} rakomány maradt. A Penrose-folyamathoz az ergoszférán belül (1,6 rs) kell lenned, és a forgás irányába repülve hátrafelé kell dobnod – így a rakomány energiája a végtelenből nézve negatív lesz.`, 1500);
   }
 }
 
@@ -1815,7 +1834,7 @@ const ov = $('ov'), card = $('card');
 function showMenu(){
   card.innerHTML = `<div class="eyebrow">Relativisztikus pilótagyakorlat</div>
   <h1>Esemény<span>horizont</span></h1>
-  <p>Egy fekete lyuk körül repülsz. Hat küldetés közül választhatsz. Minél gyorsabban mész, és minél közelebb kerülsz a lyukhoz, annál lassabban jár a hajó órája a Földhöz képest.</p>
+  <p>Egy fekete lyuk körül repülsz. Hét küldetés közül választhatsz. Minél gyorsabban mész, és minél közelebb kerülsz a lyukhoz, annál lassabban jár a hajó órája a Földhöz képest.</p>
   <div class="eyebrow">Válassz küldetést</div>
   <div class="mlist">${Object.entries(MISSIONS).map(([k,m]) => `<button class="mbtn" type="button" data-m="${k}"><b>${m.n}</b><span>${m.d}</span>${records[k]!=null ? `<i>✓ legjobb: ${tfmt(records[k])} hajóidő</i>` : ''}</button>`).join('')}</div>
   <ul>
@@ -1841,7 +1860,7 @@ function die(kind){ if (mode!=='play') return; mode = 'dead'; S.dead = true;
 function win(){
   endMission(true, 'Mind az öt jeladó megvan',
     `Neked ${tfmt(S.tau)} telt el. A Földön ${tfmt(S.tE)}. ${tfmt(S.tE-S.tau)} különbséggel érsz haza az ikertestvéredhez képest.`, 0); }
-function endCard(title, text){
+function endCard(title, text, extra=''){ toastEl.className = 'toast'; toastT = 0; toastKey = '';
   card.innerHTML = `<div class="eyebrow">${mode==='won'?'Küldetés teljesítve':'Küldetés vége'}</div>
   <h1>${title}</h1><p>${text}</p>
   <div class="stats">
@@ -1855,7 +1874,7 @@ function endCard(title, text){
     ${(([k,v]) => `<span>${k}</span><span>${v}</span>`)(missionStat())}
     <span>Penrose-nyerés</span><span>${S.penrose}×</span>
     <span>Felkeresett helyek</span><span>${Object.keys(S.visited).length} / ${PLACES.length}</span>
-  </div>
+  </div>${extra}
   <div class="modes"><button class="go" id="go" type="button">Újra</button><button class="go alt" id="go2" type="button">Menü</button></div>`;
   ov.hidden = false; $('go').onclick = () => start(); $('go2').onclick = showMenu; $('go').focus();
 }
