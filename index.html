@@ -1841,7 +1841,7 @@ function drawPlacesTop(t){
 }
 
 // ---- Féreglyuk: gömb, amely a túloldal egét mutatja; az átkelés a torok belső felszínén vezet ----
-const WORM = {x:-11000, y:-6000}, WR = 260, WT = 6.5;
+const WORM = {x:-11000, y:-6000}, WR = 260, WT = 8;
 const PCOL = {star:'255,120,80', binary:'225,238,255', nebula:'255,90,120', snr:'140,255,180', cluster:'255,210,150', magnetar:'190,170,255', galaxy:'255,222,175'};
 const wormEl = document.getElementById('worm');
 function wormMouths(){ return [{id:'home', x:WORM.x, y:WORM.y}].concat(PLACES.map(p => ({id:p.id, x:p.wx, y:p.wy, place:p}))); }
@@ -1868,9 +1868,9 @@ function startWorm(m, dest){
   const to = dest==='home' ? {x:WORM.x, y:WORM.y, ox:0, oy:0} : {x:dest.wx, y:dest.wy, ox:dest.x, oy:dest.y};
   // a kiinduló oldal színe: a kapuból indulva a lyuk környéke, a helyekről indulva a hely
   S.worm = {t:0, T:WT, trav:0, to, m, name:destName(dest), fromCol: m.id==='home' ? '255,170,80' : PCOL[m.place.type], toCol:destCol(dest), dest};
-  tunTex(S.worm);
+  tunTex();
   S.ap = null; wormEl.hidden = true; alcEl.hidden = true; S.thrust = 0;
-  toast(`Belépés a torokba → ${S.worm.name}`, 'vio', 2.2);
+  toastEl.className = 'toast'; toastT = 0;
 }
 function stepWorm(dt){
   const w = S.worm; w.t += dt; S.tE += dt; S.tau += dt;   // a szájak egymáshoz képest nyugszanak: a két óra együtt jár
@@ -1939,74 +1939,133 @@ function drawWormsCockpit(t, f, hcx, hcy, fx, fy, rxv, ryv, edgeMark){
     drawMouth(x, hcy, rp, m, t); ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(215,195,255,0.9)';
     ctx.fillText(`${mouthLabel(m)} · ${d < 1000 ? Math.round(d) : fmt(d/1000) + 'k'}`, x, hcy - rp*1.3 - 10); }
 }
-// átkelés a film mintájára (James, von Tunzelmann, Franklin, Thorne 2015): a gömb kitágul, amíg betölti a képet;
-// a torokban „egzotikus tájak” suhannak el a falon (a filmben légifotókból készült animáció), a cél gyorsan közeledik.
-// A fal itt egy valódi, perspektívában leképezett alagút-textúra: kis felbontáson pixelenként számolva, majd felnagyítva.
+// átkelés a film mintájára (a felhasználó által küldött jelenet alapján):
+//  1) belépés: a gömb kitágul, a tér összetörik – sötét, töredezett szélű „szakadás”, a csillagok sugárirányú csíkokká nyúlnak;
+//  2) torok: sötét, üveges, folyékony belső tér – átlátszó buborékgömbök, fénytörés, vibráló villámszerű repedés, kék lencsefoltok;
+//  3) kilépés: újra csíkok, tűzszerű, meleg fénykitörés, felfehéredés.
+// (James, von Tunzelmann, Franklin, Thorne 2015: a filmben az átkelés az egyetlen rész, ahol a fizikai számolás helyett művészi animáció készült.)
 const mixC = (a, b, q) => { const A = a.split(',').map(Number), B = b.split(',').map(Number); return A.map((v,i) => Math.round(v + (B[i]-v)*q)).join(','); };
-const TUN = {TW:256, TH:256, cv:null, cx:null, img:null, bw:0, bh:0};
-function tunTex(w){
-  const TW = TUN.TW, TH = TUN.TH, mk = (col, seed) => {
-    const [r,g,b] = col.split(',').map(Number), out = new Uint8ClampedArray(TW*TH*3);
-    let sd = seed; const rnd = () => (sd = (sd*16807) % 2147483647) / 2147483647;
-    const lat = []; for (const n of [8,16,32,64]){ const L = new Float32Array(n*n); for (let i=0;i<n*n;i++) L[i] = rnd(); lat.push([n, L]); }
-    const vn = (n, L, x, y) => { const fx = x*n, fy = y*n, x0 = Math.floor(fx), y0 = Math.floor(fy), tx = fx-x0, ty = fy-y0, sx = tx*tx*(3-2*tx), sy = ty*ty*(3-2*ty);
-      const a0 = L[(y0%n)*n + x0%n], a1 = L[(y0%n)*n + (x0+1)%n], b0 = L[((y0+1)%n)*n + x0%n], b1 = L[((y0+1)%n)*n + (x0+1)%n];
-      return (a0 + (a1-a0)*sx) + ((b0 + (b1-b0)*sx) - (a0 + (a1-a0)*sx))*sy; };
-    for (let y=0;y<TH;y++) for (let x=0;x<TW;x++){ const u = x/TW, v = y/TH; let h = 0, amp = 0.55, wgt = 1;
-      for (const [n, L] of lat){ const rr = 1 - Math.abs(2*vn(n, L, u, v) - 1), q = rr*rr*wgt; h += q*amp; wgt = clamp(q*1.6, 0, 1); amp *= 0.5; }
-      // gerincek fényben, völgyek árnyékban – mint egy légifotón a hegyvonulatok és folyómedrek
-      const k = Math.pow(clamp(h*1.25, 0, 1), 1.6), hi = clamp((h - 0.62)*5, 0, 1), o = (y*TW + x)*3;
-      out[o] = r*0.12 + (r*0.95 - r*0.12)*k + 255*hi*0.45; out[o+1] = g*0.12 + (g*0.95 - g*0.12)*k + 255*hi*0.45; out[o+2] = b*0.14 + (b*0.95 - b*0.14)*k + 255*hi*0.55; }
-    return out; };
-  w.texA = mk(mixC(w.fromCol, '200,210,235', 0.25), 1234567); w.texB = mk(mixC(w.toCol, '200,210,235', 0.15), 7654321);
+const sstep = (a, b, x) => { const q = clamp((x - a)/(b - a), 0, 1); return q*q*(3 - 2*q); };
+const TUN = {TW:256, TH:256, cv:null, cx:null, img:null, bw:0, bh:0, K:null, Hh:null};
+function tunTex(){
+  if (TUN.K) return; const TW = TUN.TW, TH = TUN.TH, K = new Float32Array(TW*TH), Hh = new Float32Array(TW*TH);
+  let sd = 2468013; const rnd = () => (sd = (sd*16807) % 2147483647) / 2147483647;
+  const lat = []; for (const n of [8,16,32,64]){ const L = new Float32Array(n*n); for (let i=0;i<n*n;i++) L[i] = rnd(); lat.push([n, L]); }
+  const vn = (n, L, x, y) => { const fx = x*n, fy = y*n, x0 = Math.floor(fx), y0 = Math.floor(fy), tx = fx-x0, ty = fy-y0, sx = tx*tx*(3-2*tx), sy = ty*ty*(3-2*ty);
+    const a0 = L[(y0%n)*n + x0%n], a1 = L[(y0%n)*n + (x0+1)%n], b0 = L[((y0+1)%n)*n + x0%n], b1 = L[((y0+1)%n)*n + (x0+1)%n];
+    return (a0 + (a1-a0)*sx) + ((b0 + (b1-b0)*sx) - (a0 + (a1-a0)*sx))*sy; };
+  for (let y=0;y<TH;y++) for (let x=0;x<TW;x++){ const u = x/TW, v = y/TH; let h = 0, amp = 0.55, wgt = 1;
+    for (const [n, L] of lat){ const rr = 1 - Math.abs(2*vn(n, L, u, v) - 1), q = rr*rr*wgt; h += q*amp; wgt = clamp(q*1.6, 0, 1); amp *= 0.5; }
+    K[y*TW + x] = Math.pow(clamp(h*1.2, 0, 1), 2); Hh[y*TW + x] = Math.pow(clamp((h - 0.6)*3.2, 0, 1), 3); }
+  TUN.K = K; TUN.Hh = Hh;
+}
+// rögzített véletlen elemek: csíkok, buborékok, lencsefoltok, a szakadás pereme
+const WSTR = [], WBUB = [], WBOK = [], WRIM = [];
+{ let sd = 97531; const r = () => (sd = (sd*16807) % 2147483647) / 2147483647;
+  for (let i=0;i<300;i++) WSTR.push({a:r()*TAU, z0:r(), warm:r() < 0.3, b:0.4 + r()*0.6});
+  for (let i=0;i<7;i++) WBUB.push({a:r()*TAU, d:0.15 + r()*0.5, z0:r(), s:0.5 + r()*0.8});
+  for (let i=0;i<9;i++) WBOK.push({x:r(), y:r(), s:8 + r()*26, f:r()*TAU});
+  let acc = 0; for (let i=0;i<120;i++){ acc = acc*0.82 + (r() - 0.5)*0.22; WRIM.push(1 + acc + (r() - 0.5)*0.05); } }
+function wormStreaks(t, ex, ey, speed, al, M){   // sugárirányú csillagcsíkok a haladási pontból
+  if (al <= 0.01) return; ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+  const tr = S.worm.trav*1.3;
+  for (const s of WSTR){ const z = (((s.z0 - tr) % 1) + 1) % 1 + 0.02, r1 = M*0.05/z, r2 = M*0.05/(z + 0.02 + speed*0.12); if (r2 > M) continue;
+    const a = clamp((1 - z)*1.2, 0, 1)*s.b*al; ctx.strokeStyle = s.warm ? `rgba(255,190,130,${a.toFixed(3)})` : `rgba(215,228,255,${a.toFixed(3)})`;
+    ctx.lineWidth = clamp(1.8*(1 - z), 0.5, 1.6); const c = Math.cos(s.a), sn = Math.sin(s.a);
+    ctx.beginPath(); ctx.moveTo(ex + c*r2, ey + sn*r2); ctx.lineTo(ex + c*r1, ey + sn*r1); ctx.stroke(); }
+  ctx.globalCompositeOperation = 'source-over';
+}
+function wormBolt(t, ex, ey, M, al, warm){   // vibráló, villámszerű repedés a torok falán
+  if (al <= 0.02) return; let sd = Math.floor(t/90) + 13; const r = () => (sd = (sd*16807 + 7) % 2147483647) / 2147483647;
+  const ang = Math.PI*0.62 + Math.sin(t*0.0004)*0.5, pts = []; let x = ex + Math.cos(ang)*M*0.04, y = ey + Math.sin(ang)*M*0.04;
+  for (let i=0;i<16;i++){ pts.push([x,y]); const step = M*0.035*(1 + i*0.12); x += Math.cos(ang + (r()-0.5)*1.5)*step; y += Math.sin(ang + (r()-0.5)*1.5)*step; }
+  const fl = al*(0.6 + 0.4*r()); ctx.globalCompositeOperation = 'lighter'; ctx.lineJoin = 'round';
+  for (const [lw, c] of [[14, warm ? `rgba(255,150,60,${(0.10*fl).toFixed(3)})` : `rgba(255,190,110,${(0.08*fl).toFixed(3)})`], [5, `rgba(255,215,160,${(0.35*fl).toFixed(3)})`], [1.4, `rgba(255,250,235,${(0.95*fl).toFixed(3)})`]]){
+    ctx.strokeStyle = c; ctx.lineWidth = lw; ctx.beginPath(); pts.forEach(([px,py],i) => i ? ctx.lineTo(px,py) : ctx.moveTo(px,py)); ctx.stroke(); }
+  ctx.globalCompositeOperation = 'source-over';
 }
 function drawWormTransit(t){
   const w = S.worm, p = clamp(w.t/w.T, 0, 1), M = Math.max(W,H), env = Math.sin(Math.PI*p);
-  if (!w.texA) tunTex(w);
-  // alacsony felbontású puffer: pixelenként szög → kerület menti koordináta, 1/távolság → mélység
-  const bw = W < 700 ? 190 : 260, bh = Math.max(110, Math.min(320, Math.round(bw*H/W)));
-  if (!TUN.cv || TUN.bw !== bw || TUN.bh !== bh){ TUN.cv = document.createElement('canvas'); TUN.cv.width = bw; TUN.cv.height = bh; TUN.cx = TUN.cv.getContext('2d'); TUN.img = TUN.cx.createImageData(bw, bh); TUN.bw = bw; TUN.bh = bh; }
-  const d = TUN.img.data, TW = TUN.TW, TH = TUN.TH, A = w.texA, B = w.texB;
-  // a torok kanyarog: a középpont vándorol, így van parallaxis és sodrás-érzet
-  const ccx = bw/2 + Math.sin(t*0.0009)*bw*0.16*env, ccy = bh*0.46 + Math.cos(t*0.0007)*bh*0.12*env, rot = w.t*0.11 + Math.sin(t*0.0005)*0.2*env;
-  const [fr, fg, fb] = mixC(w.toCol, '255,255,255', 0.3).split(',').map(Number), R0 = bh*0.6, trav = w.trav;
-  for (let y=0;y<bh;y++){ const dy = (y - ccy)*1.2;
-    for (let x=0;x<bw;x++){ const dx = x - ccx, dist = Math.sqrt(dx*dx + dy*dy) + 0.6, depth = 24/dist;
-      const u = Math.atan2(dy, dx)/TAU + 0.5, tx = ((u*2 + rot)*TW) & (TW-1), ty = ((depth*0.32 + trav)*TH) & (TH-1), o = (ty*TW + tx)*3;
-      const q = clamp(p*1.9 - 0.45 + depth*0.06, 0, 1), lit = Math.pow(clamp(dist/R0, 0, 1.2), 0.9)*0.85, fog = clamp(depth*0.3 - 0.3, 0, 1)*(0.35 + 0.65*p);
-      const cr = (A[o] + (B[o]-A[o])*q)*lit, cg = (A[o+1] + (B[o+1]-A[o+1])*q)*lit, cb = (A[o+2] + (B[o+2]-A[o+2])*q)*lit;
-      const i = (y*bw + x)*4; d[i] = cr + (fr - cr)*fog; d[i+1] = cg + (fg - cg)*fog; d[i+2] = cb + (fb - cb)*fog; d[i+3] = 255; } }
-  TUN.cx.putImageData(TUN.img, 0, 0);
-  // rázkódás: a torok közepén a legerősebb
-  const sh = 2 + 9*env*env, ox = (Math.random() - .5)*sh, oy = (Math.random() - .5)*sh;
-  ctx.save(); ctx.translate(ox, oy); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(TUN.cv, -8, -8, W + 16, H + 16);
-  // sugárirányú elmosódás: ugyanaz a kép nagyítva, áttetszően
-  const ex = (ccx/bw)*W, ey = (ccy/bh)*H;
-  for (const [k, al] of [[1.05, 0.28], [1.12, 0.16]]){ ctx.globalAlpha = al*(0.4 + 0.6*env); ctx.drawImage(TUN.cv, ex - (ex+8)*k, ey - (ey+8)*k, (W+16)*k, (H+16)*k); }
-  ctx.globalAlpha = 1;
-  // a cél fénye a torok végén, egyre gyorsabban közeledve
+  tunTex();
+  const eIn = sstep(0.08, 0.3, p), eMid = sstep(0.22, 0.36, p)*(1 - sstep(0.74, 0.86, p)), eOut = sstep(0.76, 0.9, p);
+  ctx.fillStyle = '#010205'; ctx.fillRect(0,0,W,H);
+  const sh = 1.5 + 8*env*env, ox = (Math.random() - .5)*sh, oy = (Math.random() - .5)*sh;
+  ctx.save(); ctx.translate(ox, oy);
+  // a haladási pont kicsit vándorol: a torok kanyarog
+  const ex = W/2 + Math.sin(t*0.0009)*W*0.08*env, ey = H*0.46 + Math.cos(t*0.0007)*H*0.06*env;
+  // 2) a torok fala: sötét, üveges, hullámzó felszín – csak a fénylő gerincek látszanak
+  if (eMid > 0.01){
+    const bw = W < 700 ? 170 : 230, bh = Math.max(100, Math.min(300, Math.round(bw*H/W)));
+    if (!TUN.cv || TUN.bw !== bw || TUN.bh !== bh){ TUN.cv = document.createElement('canvas'); TUN.cv.width = bw; TUN.cv.height = bh; TUN.cx = TUN.cv.getContext('2d'); TUN.img = TUN.cx.createImageData(bw, bh); TUN.bw = bw; TUN.bh = bh; }
+    const d = TUN.img.data, TW = TUN.TW, TH = TUN.TH, K = TUN.K, Hh = TUN.Hh, ccx = (ex/W)*bw, ccy = (ey/H)*bh, R0 = bh*0.6, trav = w.trav, rot = w.t*0.08, tt = t*0.001;
+    const [ar, ag, ab] = mixC(mixC(w.fromCol, '30,60,85', 0.75), mixC(w.toCol, '30,60,85', 0.75), clamp(p*1.6 - 0.4, 0, 1)).split(',').map(Number);
+    for (let y=0;y<bh;y++){ const dy = (y - ccy)*1.2;
+      for (let x=0;x<bw;x++){ const dx = x - ccx, dist = Math.sqrt(dx*dx + dy*dy) + 0.6, depth = 22/dist;
+        // fénytörés: a felszín hullámzik, mint az üveg vagy a víz
+        const u = Math.atan2(dy, dx)/TAU + 0.5 + 0.03*Math.sin(depth*7 + tt*2.1), v = depth*0.3 + trav + 0.02*Math.sin(u*TAU*3 + tt*1.7);
+        const tx = ((u*2 + rot)*TW) & (TW-1), ty = (v*TH) & (TH-1), o = ty*TW + tx;
+        const lit = Math.pow(clamp(dist/R0, 0, 1.2), 1.2), k = K[o]*lit, hi = Hh[o]*lit*1.4, fog = clamp(depth*0.25 - 0.35, 0, 1);
+        const i = (y*bw + x)*4; d[i] = (ar*k + 255*hi)*(1 - fog); d[i+1] = (ag*k + 236*hi)*(1 - fog); d[i+2] = (ab*k + 205*hi)*(1 - fog); d[i+3] = 255; } }
+    TUN.cx.putImageData(TUN.img, 0, 0);
+    ctx.globalAlpha = eMid; ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(TUN.cv, -10, -10, W + 20, H + 20);
+    ctx.globalAlpha = 0.25*eMid; ctx.drawImage(TUN.cv, ex - (ex+10)*1.08, ey - (ey+10)*1.08, (W+20)*1.08, (H+20)*1.08); ctx.globalAlpha = 1;
+    // átlátszó buborékgömbök: gömb a gömbben, a peremükön fénytörés
+    ctx.globalCompositeOperation = 'lighter';
+    for (const b of WBUB){ const z = (((b.z0 - w.trav*0.35) % 1) + 1) % 1 + 0.08, rr = M*0.09*b.s/z, cx = ex + Math.cos(b.a)*b.d*M*0.35/z, cy = ey + Math.sin(b.a)*b.d*M*0.28/z;
+      if (rr > M*1.3) continue; const al = clamp((1 - z)*1.3, 0, 1)*eMid;
+      const g = ctx.createRadialGradient(cx - rr*0.3, cy - rr*0.35, rr*0.1, cx, cy, rr); g.addColorStop(0, `rgba(160,200,230,${(0.06*al).toFixed(3)})`); g.addColorStop(0.85, 'rgba(60,90,120,0)'); g.addColorStop(0.97, `rgba(170,210,240,${(0.28*al).toFixed(3)})`); g.addColorStop(1, 'rgba(170,210,240,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, rr, 0, TAU); ctx.fill();
+      ctx.strokeStyle = `rgba(215,235,255,${(0.55*al).toFixed(3)})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(cx, cy, rr*0.93, Math.PI*1.05, Math.PI*1.5); ctx.stroke();
+      ctx.strokeStyle = `rgba(255,220,170,${(0.22*al).toFixed(3)})`; ctx.beginPath(); ctx.arc(cx, cy, rr*0.96, Math.PI*0.15, Math.PI*0.5); ctx.stroke();
+      for (let k=0;k<10;k++){ const s = WMS[(k*13 + Math.floor(b.z0*100)) % WMS.length], q = rr*0.85*Math.sqrt(s.u); ctx.fillStyle = `rgba(230,240,255,${(0.7*al*s.b).toFixed(3)})`; ctx.fillRect(cx + Math.cos(s.a)*q, cy + Math.sin(s.a)*q*0.9, 1.4, 1.4); } }
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  // 1) belépés: a tér összetörik – sötét szakadás töredezett, izzó peremmel
+  const tear = sstep(0.06, 0.2, p)*(1 - sstep(0.3, 0.42, p));
+  if (tear > 0.01){ const R = Math.min(W,H)*(0.05 + 1.1*Math.pow(sstep(0.06, 0.4, p), 2.2));
+    const N = WRIM.length, P = WRIM.map((k, i) => { const a = i/N*TAU, rr = R*(k + 0.02*Math.sin(t*0.03 + i*1.7)); return [ex + Math.cos(a)*rr, ey + Math.sin(a)*rr*0.8]; });
+    ctx.beginPath(); P.forEach(([X,Y], i) => i ? ctx.lineTo(X,Y) : ctx.moveTo(X,Y)); ctx.closePath();
+    ctx.fillStyle = `rgba(0,0,0,${(0.8*tear).toFixed(3)})`; ctx.fill();
+    // a perem nem folytonos: izzó töredékek és szikrák, mint egy betört üveg széle
+    ctx.globalCompositeOperation = 'lighter'; ctx.lineJoin = 'round';
+    for (let i=0;i<N;i++){ const on = Math.sin(i*12.9898 + Math.floor(t/70)*0.7)*43758.5 % 1; if (Math.abs(on) < 0.35) continue;
+      const [x1,y1] = P[i], [x2,y2] = P[(i+1)%N], warm = (i % 7) < 3, a = tear*(0.45 + 0.55*Math.abs(on));
+      ctx.strokeStyle = warm ? `rgba(255,170,90,${(0.22*a).toFixed(3)})` : `rgba(200,220,255,${(0.18*a).toFixed(3)})`; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+      ctx.strokeStyle = warm ? `rgba(255,225,180,${(0.9*a).toFixed(3)})` : `rgba(235,242,255,${(0.85*a).toFixed(3)})`; ctx.lineWidth = 1.2; ctx.stroke();
+      if (Math.abs(on) > 0.8){ const sx = x1 + (x1 - ex)*0.04*Math.abs(on), sy = y1 + (y1 - ey)*0.04*Math.abs(on); ctx.fillStyle = `rgba(255,235,200,${(0.9*a).toFixed(3)})`; ctx.fillRect(sx, sy, 2, 2); } }
+    ctx.globalCompositeOperation = 'source-over'; }
+  // csillagcsíkok: belépéskor és kilépéskor a legerősebbek
+  const spd = 0.3 + 2.2*Math.max(eIn*(1 - eMid), eOut);
+  wormStreaks(t, ex, ey, spd, Math.max(eIn*(1 - 0.7*eMid), eOut)*0.95 + 0.15, M);
+  // villámszerű repedés a falon
+  wormBolt(t, ex, ey, M, Math.max(eMid*0.9, eOut*0.6)*(0.5 + 0.5*Math.sin(t*0.013)), p > 0.75);
+  // 3) kilépés: meleg, tűzszerű kitörés alulról, a cél fénye előre
+  if (eOut > 0.01){ ctx.globalCompositeOperation = 'lighter';
+    for (let i=0;i<5;i++){ const fx = ex + (i - 2)*M*0.06 + Math.sin(t*0.01 + i)*M*0.02, fy = ey + M*(0.12 + 0.28*(1 - eOut)) + i%2*M*0.02, fr = M*(0.05 + 0.12*eOut)*(1 + 0.3*Math.sin(t*0.017 + i*2));
+      const g = ctx.createRadialGradient(fx, fy, 0, fx, fy, fr); g.addColorStop(0, `rgba(255,235,190,${(0.55*eOut).toFixed(3)})`); g.addColorStop(0.4, `rgba(255,140,50,${(0.30*eOut).toFixed(3)})`); g.addColorStop(1, 'rgba(160,40,0,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(fx, fy, fr, 0, TAU); ctx.fill(); }
+    const er = 10 + Math.pow(eOut, 3)*M*0.7, eg = ctx.createRadialGradient(ex,ey,0,ex,ey,er);
+    eg.addColorStop(0,'rgba(255,255,255,0.9)'); eg.addColorStop(0.3,`rgba(${w.toCol},0.4)`); eg.addColorStop(1,`rgba(${w.toCol},0)`);
+    ctx.fillStyle = eg; ctx.fillRect(-20,-20,W+40,H+40); ctx.globalCompositeOperation = 'source-over'; }
+  // kék lencsefoltok (bokeh) és vízszintes csillanás – a filmes kamera nyoma
   ctx.globalCompositeOperation = 'lighter';
-  const er = 14 + Math.pow(p, 3.5)*M*0.8, eg = ctx.createRadialGradient(ex,ey,0,ex,ey,er);
-  eg.addColorStop(0,'rgba(255,255,255,0.95)'); eg.addColorStop(0.25,`rgba(${w.toCol},0.55)`); eg.addColorStop(1,`rgba(${w.toCol},0)`);
-  ctx.fillStyle = eg; ctx.fillRect(-20,-20,W+40,H+40);
-  // anamorf lencsecsillanás és színi hiba a peremen – a filmes kamera nyoma
-  const fl = ctx.createLinearGradient(0, ey, W, ey); fl.addColorStop(0,'rgba(120,170,255,0)'); fl.addColorStop(clamp(ex/W,0.05,0.95),`rgba(170,210,255,${(0.35 + 0.35*p).toFixed(3)})`); fl.addColorStop(1,'rgba(120,170,255,0)');
-  ctx.fillStyle = fl; ctx.fillRect(0, ey - 1.5 - 3*p, W, 3 + 6*p);
-  ctx.strokeStyle = `rgba(255,80,60,${(0.10*env).toFixed(3)})`; ctx.lineWidth = 10; ctx.beginPath(); ctx.ellipse(ex+4, ey, M*0.55, M*0.42, 0, 0, TAU); ctx.stroke();
-  ctx.strokeStyle = `rgba(60,200,255,${(0.10*env).toFixed(3)})`; ctx.beginPath(); ctx.ellipse(ex-4, ey, M*0.55, M*0.42, 0, 0, TAU); ctx.stroke();
+  const bk = 0.35*eMid + 0.2*eOut;
+  if (bk > 0.01) for (const o of WBOK){ const x = o.x*W + Math.sin(t*0.0004 + o.f)*30, y = o.y*H + Math.cos(t*0.0003 + o.f)*20, a = bk*(0.5 + 0.5*Math.sin(t*0.002 + o.f));
+    const g = ctx.createRadialGradient(x,y,0,x,y,o.s); g.addColorStop(0,`rgba(70,140,255,${(0.35*a).toFixed(3)})`); g.addColorStop(0.7,`rgba(50,110,230,${(0.18*a).toFixed(3)})`); g.addColorStop(1,'rgba(40,90,200,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x,y,o.s,0,TAU); ctx.fill(); }
+  const fla = 0.12 + 0.3*eOut; const fl = ctx.createLinearGradient(0, ey, W, ey); fl.addColorStop(0,'rgba(90,150,255,0)'); fl.addColorStop(clamp(ex/W,0.05,0.95),`rgba(150,200,255,${fla.toFixed(3)})`); fl.addColorStop(1,'rgba(90,150,255,0)');
+  ctx.fillStyle = fl; ctx.fillRect(0, ey - 1, W, 2 + 3*eOut);
   ctx.globalCompositeOperation = 'source-over'; ctx.restore();
-  const vg = ctx.createRadialGradient(W/2,H/2,M*0.3,W/2,H/2,M*0.75); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.65)'); ctx.fillStyle = vg; ctx.fillRect(0,0,W,H);
-  // belépés: a gömb a kép közepéről kitágul, amíg betölti a képet
-  if (p < 0.16){ const k = p/0.16, rp = Math.min(W,H)*0.32 + Math.pow(k, 2.2)*M*1.4;
-    ctx.globalAlpha = 1 - Math.pow(k, 3); ctx.fillStyle = '#020207'; ctx.fillRect(0,0,W,H); drawMouth(W/2, H*0.46, rp, w.m, t); ctx.globalAlpha = 1; }
-  // kilépés: felfehéredés, a cél ege átveszi a képet
-  if (p > 0.86){ ctx.fillStyle = `rgba(250,248,255,${(Math.pow((p - 0.86)/0.14, 1.5)*0.95).toFixed(3)})`; ctx.fillRect(0,0,W,H); }
+  const vg = ctx.createRadialGradient(W/2,H/2,M*0.28,W/2,H/2,M*0.72); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.75)'); ctx.fillStyle = vg; ctx.fillRect(0,0,W,H);
+  // a legelején: a gömb a kép közepéről kitágul, a túloldal egével
+  if (p < 0.12){ const k = p/0.12, rp = Math.min(W,H)*0.32 + Math.pow(k, 2.4)*M*1.2;
+    ctx.globalAlpha = 1 - Math.pow(k, 2); ctx.fillStyle = '#020207'; ctx.fillRect(0,0,W,H); drawMouth(W/2, H*0.46, rp, w.m, t); ctx.globalAlpha = 1; }
+  if (p > 0.9){ ctx.fillStyle = `rgba(250,248,255,${(Math.pow((p - 0.9)/0.1, 1.6)*0.95).toFixed(3)})`; ctx.fillRect(0,0,W,H); }
   // kijelző
   const bw2 = Math.min(240, W*0.6), bx = W/2 - bw2/2, by = Math.max(236, H*0.2);
-  ctx.font = '600 11px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(235,230,255,0.9)';
+  ctx.font = '600 11px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(225,230,245,0.75)';
   ctx.fillText(`FÉREGLYUK → ${w.name}`, W/2, by - 10);
-  ctx.strokeStyle = 'rgba(220,200,255,0.5)'; ctx.lineWidth = 1; ctx.strokeRect(bx, by, bw2, 5); ctx.fillStyle = 'rgba(220,200,255,0.85)'; ctx.fillRect(bx+1, by+1, (bw2-2)*p, 3);
+  ctx.strokeStyle = 'rgba(200,215,240,0.35)'; ctx.lineWidth = 1; ctx.strokeRect(bx, by, bw2, 4); ctx.fillStyle = 'rgba(210,225,250,0.7)'; ctx.fillRect(bx+1, by+1, (bw2-2)*p, 2);
 }
 
 // ---- Alcubierre-hajtómű: a téridő maga mozog, a hajó a buborékban szabadon esik ----
