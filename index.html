@@ -554,7 +554,7 @@ function drawTessCockpit(t, f, hcx, hcy, p3, fx, fy){
 // ---- Zuhanás a lyukba: lassított átmenet a horizonton át a 4D térbe ----
 // Fizikailag: egy ekkora (szupernagy tömegű) lyuknál a horizonton az árapály még elviselhető, és helyben semmi különös nem
 // történik – nincs fal, nincs villanás. A kívülről nézett „örökké lassuló, vörösödő” hajó a távoli megfigyelő képe, nem a pilótáé.
-function startFall(){ S.fall = {t:0, T:7}; S.ap = null; S.thrust = 0; wormEl.hidden = true; alcEl.hidden = true; toastEl.className = 'toast'; toastT = 0; }
+function startFall(){ holoAdd(S.x, S.y, 'te'); S.fall = {t:0, T:7}; S.ap = null; S.thrust = 0; wormEl.hidden = true; alcEl.hidden = true; toastEl.className = 'toast'; toastT = 0; }
 function stepFall(dt){ const F = S.fall; F.t += dt; S.tau += dt; S.tE += dt; S.gamma = 1; S.beta = 0; S.thrust = 0; S.dtc = dt;
   if (F.t >= F.T){ S.fall = null; enterInside(); } }
 const FST = []; { let sd = 777; const r = () => (sd = (sd*16807) % 2147483647)/2147483647; for (let i=0;i<520;i++) FST.push({a:r()*TAU, u:r(), b:0.35 + r()*0.65, w:r()}); }
@@ -695,7 +695,7 @@ function update(dt){
       if (mode==='play'){
         if (!S.hit95 && S.beta>0.95){ S.hit95=true; toast('0,95 c – a csillagok előretorlódnak'); }
         if (!S.hit99 && S.beta>0.99){ S.hit99=true; toast('0,99 c – a hajóóra hétszer lassabb'); }
-        checkTwin(); checkWorms();
+        checkTwin(); checkWorms(); if (r < 4*RS) phenom('holo');
         const tg = tidalG(r/RS);
         if (tg > HULL_G){ die('tidal'); }
         else if (r < RS) startFall();
@@ -818,7 +818,7 @@ function drawOutside(t){
   }
 
   // fekete lyuk: fénypálya-követéssel számolt kép, felülről (lásd: Gargantua-renderelő lent)
-  bhDraw(BHC.top(), bx, by, (RS/2)*z, t, V.rot);
+  bhDraw(BHC.top(), bx, by, (RS/2)*z, t, V.rot); drawHoloTop(t, bx, by);
   ctx.setLineDash([4,5]); ctx.lineWidth = 1;
   ctx.strokeStyle = 'rgba(180,140,255,0.7)'; ctx.beginPath(); ctx.arc(bx,by,RS*z,0,TAU); ctx.stroke();
   ctx.strokeStyle = 'rgba(255,90,82,0.22)'; ctx.beginPath(); ctx.arc(bx,by,ISCO*z,0,TAU); ctx.stroke();
@@ -939,6 +939,8 @@ const PHEN = {
     p:'A lyukba hulló gázfelhőt az árapályerő sugárirányban megnyújtja, oldalirányban összenyomja: hosszú, vékony szálakká húzza. Ugyanez történik a csillagokkal is az árapályos szétszakítási eseményeknél (TDE), amelyeket a távcsövek rendszeresen látnak fellobbanni.'},
   sky:{t:'A kinti ég', tag:'Jelenség · gyakori tévhit cáfolata',
     p:() => `Népszerű kép, hogy a lyukba zuhanva lepörögni látod a világegyetem teljes jövőjét. Ez nem igaz: a beeső megfigyelő a horizont átlépése után is csak véges kinti időt lát, és a kinti ég képe torzul, de nem gyorsul végtelenül. A játékban a kinti óra most ${tfmt(S.tE)}-nél jár – ezt a játékszabály (a fehér lyukas visszapattanás) adja, nem a látvány.`},
+  holo:{t:'A horizont emlékezete', tag:'Jelenség · holografikus elv (spekulatív)',
+    p:() => { const c = holoCount(); return `A horizont felszínén pötty-sorok futnak: minden, ami a lyukba esett, ott „íródik fel”. Most: ${c.foton || 0} foton, ${c['rakomány'] || 0} rakomány, ${c.te || 0}× te magad, és ${(c.gáz || 0) + (c.csillag || 0)} régebbi falat (gáz, csillagmaradvány). A fekete lyuk entrópiája a horizont felületével arányos (Bekenstein, Hawking) – mintha a belsejének minden információja a felszínén lenne kódolva ('t Hooft, Susskind). Hawking szerint a lyuk lassan elpárolog; hogy az információ ilyenkor visszajön-e, az az információs paradoxon, ma is nyitott kérdés. A pöttyök itt szemléltetés: ilyen „olvasható” mintázatot a valóságban nem látnánk.`; }},
   self:{t:'Önmagad, hátulról', tag:'Jelenség · zárt időszerű görbék (spekulatív)',
     p:'Itt az idő is úgy viselkedik, mint egy térirány: a saját, néhány másodperccel korábbi helyzeteidet látod magad előtt, hátulról, egymás mögött. Az általános relativitáselmélet egyes megoldásai (Gödel 1949, a forgó Kerr-lyuk gyűrűjén belüli tartomány, mozgatott féreglyukak) megengednek zárt időszerű görbéket, amelyeken a múltba lehetne jutni. A valóságban egyet sem ismerünk, és Hawking kronológiavédelmi sejtése szerint a természet megakadályozza őket. Az Interstellar tesszeraktja is ezt az ötletet viszi tovább – fikcióként.'},
   bkl:{t:'BKL-káosz', tag:'Jelenség · Belinszkij, Halatnyikov, Lifsic, 1970',
@@ -1127,7 +1129,7 @@ function drawCockpitInner(t){
     const [bx,by,ba] = PB; const sc = f/(ba*Math.max(0.4,Db));
     const shPx = Math.max(1.5, Math.tan(Math.min(1.4,shA))*sc);
     // élből látva, mint a filmben: a korong túloldala a lyuk fölé és alá hajlik, a közeli oldal előtte halad el
-    bhDraw(BHC.edge(), bx, by, shPx/BH_BC, t, 0, () => drawJets(t, bx, by, shPx));
+    bhDraw(BHC.edge(), bx, by, shPx/BH_BC, t, 0, () => drawJets(t, bx, by, shPx)); drawHoloCockpit(t, bx, by, shPx);
     ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(200,175,255,0.85)';
     ctx.fillText(`FEKETE LYUK · ${fmt(bd/RS)} rs`, bx, by + Math.max(shPx*1.9, 22));
   } else edgeMark(Math.atan2(bdy,bdx), 'LYUK', 'rgba(255,176,74,0.9)', hcy);
@@ -1485,7 +1487,7 @@ function stepPhotons(dt){
     p.age += dt; p.pts.push(p.x, p.y); if (p.pts.length > 1600) p.pts.splice(0,2);
     if (p.alive && (Math.hypot(p.x,p.y) > 40000 || p.age > 18)){ p.alive = false; p.fate = 'out'; }
     if (!p.alive){
-      if (p.fate==='in'){ S.captured++; toast('A fotont elnyelte a lyuk', 'danger', 2); }
+      if (p.fate==='in'){ S.captured++; holoAdd(p.x, p.y, 'foton'); toast('A fotont elnyelte a lyuk – a horizonton nyoma marad', 'danger', 2); }
       else { const sp = Math.hypot(p.vx,p.vy); const ang = Math.acos(clamp((p.vx*p.d0x + p.vy*p.d0y)/sp, -1, 1))*180/Math.PI;
         toast(`A foton kiszökött · eltérülés ${fmt(ang,1)}°`, '', 2.4); }
       p.dead = 3; }
@@ -1835,7 +1837,7 @@ function dropCargo(){
 function stepCargo(dt){
   for (const o of S.cargoObjs){ if (o.gone) continue;
     for (let i=0;i<4;i++){ const sd = dt/4, r = Math.hypot(o.x,o.y);
-      if (r < RS){ o.gone = true; for (let j=0;j<30;j++){ const a = Math.random()*TAU, v = 60+Math.random()*200;
+      if (r < RS){ o.gone = true; holoAdd(o.x, o.y, 'rakomány'); for (let j=0;j<30;j++){ const a = Math.random()*TAU, v = 60+Math.random()*200;
           S.parts.push({x:o.x,y:o.y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:1,c:o.neg?'180,140,255':'255,176,74'}); } break; }
       const a = GM/((r-RS)**2), om = OMEGA0*Math.pow(RS/r,3), tx = -o.y/r, ty = o.x/r;
       o.vx += -o.x/r*a*sd + tx*(Math.min(om*r,0.98*C) - (o.vx*tx+o.vy*ty))*4*Math.pow(RS/r,3)*sd;
@@ -1922,7 +1924,7 @@ function bhLookup(N, L, inc, gain = 1){
   const cv = mk(), cx = cv.getContext('2d'), img = cx.createImageData(N, N), bl = document.createElement('canvas'); bl.width = bl.height = Math.max(8, N/8|0);
   return {N, L, inc, R, AZ, G, F, OM, RI, BC, shCv, cv, cx, img, bl, blx: bl.getContext('2d')};
 }
-const BHC = { _e:null, _t:null, edge(){ return this._e || (this._e = bhLookup(W < 700 ? 230 : 300, 26, 1.52)); }, top(){ return this._t || (this._t = bhLookup(W < 700 ? 200 : 260, 24, 0.03, 2.6)); } };
+const BHC = { _e:null, _t:null, edge(){ return this._e || (this._e = bhLookup(W < 700 ? 230 : 300, 26, 1.52)); }, top(){ return this._t || (this._t = bhLookup(W < 700 ? 200 : 260, 24, 0.03, 1.8)); } };
 // hőmérséklet → szín (a forró belső rész fehér, kifelé narancs; a felénk keringő oldal kékesebb)
 function bhCol(q){ const S0 = [[0,120,30,5],[0.35,255,115,35],[0.7,255,200,130],[1,255,244,228],[1.5,205,222,255]];
   for (let k=1;k<S0.length;k++) if (q <= S0[k][0]){ const a = S0[k-1], b = S0[k], m = (q - a[0])/(b[0] - a[0]); return [a[1] + (b[1]-a[1])*m, a[2] + (b[2]-a[2])*m, a[3] + (b[3]-a[3])*m]; }
@@ -2011,15 +2013,15 @@ function checkTwin(){
 function winTwin(){ const rt = twinRatio();
   endMission(true, 'Hazaértél', `Neked ${tfmt(S.tau)} telt el, a Földön ${tfmt(S.tE)}. Az ikertestvéred ${tfmt(S.tE - S.tau)} idősebb lett nálad${isFinite(rt) ? ` – ${fmt(rt,1)}-szoros arány` : ''}. Ez nem illúzió: a GPS-műholdak óráit is ezért kell naponta kb. 38 mikroszekundummal korrigálni.`, 0); }
 function drawHomeTop(t){
-  if (S.mission !== 'twin') return;
+  if (!(S.mission==='twin' || S.mission==='randevu')) return;
   const [x,y] = toS(S.home.x, S.home.y), rr = 170*V.z;
   const p = (t*0.001) % 1;
-  ctx.strokeStyle = S.twinReady ? 'rgba(120,255,170,0.95)' : 'rgba(120,255,170,0.45)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x,y,Math.max(8,rr),0,TAU); ctx.stroke();
+  ctx.strokeStyle = (S.twinReady || S.mission==='randevu') ? 'rgba(120,255,170,0.95)' : 'rgba(120,255,170,0.45)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x,y,Math.max(8,rr),0,TAU); ctx.stroke();
   ctx.strokeStyle = `rgba(120,255,170,${((1-p)*0.5).toFixed(2)})`; ctx.beginPath(); ctx.arc(x,y,Math.max(8,rr)*(1+p*0.6),0,TAU); ctx.stroke();
   ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(150,255,190,0.9)'; ctx.fillText('FÖLD-KAPU', x, y - Math.max(8,rr) - 10);
 }
 function drawHomeCockpit(t, f, hcx, hcy, fx, fy, rxv, ryv, edgeMark){
-  if (S.mission !== 'twin') return;
+  if (!(S.mission==='twin' || S.mission==='randevu')) return;
   const rx = S.home.x - S.x, ry = S.home.y - S.y, a = rx*fx + ry*fy;
   const x = a > 30 ? hcx + f*(rx*rxv + ry*ryv)/a : -1e4;
   if (a <= 30 || x < -20 || x > W+20){ edgeMark(Math.atan2(ry,rx), 'FÖLD', 'rgba(120,255,170,0.9)', hcy + 90); return; }
@@ -2027,6 +2029,55 @@ function drawHomeCockpit(t, f, hcx, hcy, fx, fy, rxv, ryv, edgeMark){
   ctx.strokeStyle = S.twinReady ? 'rgba(120,255,170,0.95)' : 'rgba(120,255,170,0.5)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x,hcy,rr,0,TAU); ctx.stroke();
   ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(150,255,190,0.9)';
   ctx.fillText(`FÖLD-KAPU · ${fmt(Math.hypot(rx,ry)/1000)}k`, x, hcy - rr - 10);
+}
+
+// ---- Randevú a Földdel: a megfigyelő számít ----
+// Otthon 30 naponként küldenek üzenetet. Hogy ez a hajón milyen sűrűn érkezik, az a te órádtól függ: a ritmus
+// dt_Föld/dτ = γ/√(1 − rs/r) (egyszerűsítve: a fény terjedési idejét és a Doppler-irányfüggést itt nem számoljuk).
+const RV_A = 360, RV_B = 380, RV_TAU = 120, RV_EVERY = 30, RV_OORT = {x:-94000, y:-94000};   // kb. 0,4 fényév: autopilótával oda-vissza nagyjából 300 földi nap
+const RV_MSG = ['Itt minden rendben. Hiányzol.', 'Kinyílt az első hóvirág a kertben.', 'Megjavítottuk a tetőt, már nem ázik be.', 'A gyerekek rajzoltak neked egy fekete lyukat. Szerintük mosolyog.',
+  'Nyári szünet – a Balatonon vagyunk, a víz meleg.', 'A szomszéd macskája mostanában nálunk alszik.', 'Szüret volt, jó termés lett.', 'Leesett az első hó.',
+  'Karácsonykor megterítettünk neked is.', 'Boldog új évet! Nálunk már ez is elmúlt.', 'A mentőhajó elkészült, indulásra kész.', 'A mentőhajó a Föld-kapuhoz indul: a 360. naptól a 380. napig vár rád.',
+  'A mentőhajó megérkezett a kapuhoz. Vár.', 'Már csak néhány napig várhat…', 'A mentőhajó elindult nélküled. Majd jövőre.'];
+function checkRandevu(){
+  if (S.msgN == null){ S.msgN = 0; S.msgTau = 0; }
+  const n = Math.floor(S.tE/RV_EVERY);
+  if (n > S.msgN){ S.msgN = n; const dtau = S.tau - S.msgTau; S.msgTau = S.tau; const txt = RV_MSG[Math.min(n, RV_MSG.length) - 1];
+    let eta = ''; if (S.tE < RV_A && dtau > 0.05){ const rate = RV_EVERY/dtau; eta = ` · ebben az ütemben a 360. nap ${fmt((RV_A - S.tE)/rate, 1)} hajónap múlva`; }
+    toast(`Föld · ${n}. üzenet (${n*RV_EVERY}. nap): „${txt}” · az előző óta ${fmt(Math.max(dtau, 0), 1)} hajónap${eta}`, '', 6); }
+  const d = Math.hypot(S.x - S.home.x, S.y - S.home.y);
+  if (d < 300){
+    if (S.tE >= RV_A && S.tE <= RV_B && S.tau <= RV_TAU)
+      endMission(true, 'Randevú a Földdel', `A ${fmt(S.tE,0)}. földi napon értél a kapuhoz – a hajódon közben csak ${fmt(S.tau,1)} nap telt el. Otthon egy év üzenetei jöttek, neked alig négy hónap. Egyik óra sem „téved”: az idő múlása a megfigyelőtől függ. A filmben Cooper ugyanígy kapta egyszerre évtizednyi otthoni üzenetét.`, 600);
+    else if (S.tE < RV_A && !S.rvEarly){ S.rvEarly = true; toast(`Korán jöttél: otthon még csak a ${fmt(S.tE,0)}. nap van. Várj, vagy tegyél még egy kört – de a hajóórád is ketyeg.`, 'danger', 5); } }
+  else if (d > 1200) S.rvEarly = false;
+  if (S.tau > RV_TAU) endMission(false, 'Kifutottál a hajóidőből', `A hajódon ${RV_TAU} nap telt el, otthon csak ${fmt(S.tE,0)}. Tipp: a gyorsabb repülés és a lyuk közelsége is sűríti az otthoni üzeneteket – az autopilóta egy távoli célig és vissza sokszorosára gyorsítja a földi időt.`, 0);
+  else if (S.tE > RV_B) endMission(false, 'Lekésted', `Otthon már a ${fmt(S.tE,0)}. nap van: a mentőhajó elindult nélküled. Túl gyorsan mentél – a nagy sebességnél egyetlen hajónap alatt hetek telnek el otthon.`, 0);
+}
+
+// ---- A horizont emlékezete: holografikus elv ----
+// A Bekenstein–Hawking-entrópia a horizont felületével arányos: minden, ami beleesett, a felszínén „íródik fel”.
+// Itt a horizonton jelölve van minden, ami a játék során beleesett (foton, rakomány, te magad), és a lyuk régebbi táplálékai is.
+const HOLO_K = {foton:'255,245,200', 'rakomány':'255,176,74', te:'120,255,170', gáz:'180,140,255', csillag:'255,140,110'};
+function holoInit(){ S.holo = []; for (let i=0;i<26;i++) S.holo.push({ang:Math.random()*TAU, kind:i < 18 ? 'gáz' : 'csillag', bits:Math.floor(Math.random()*16)}); }
+function holoAdd(x, y, kind){ if (!S.holo) holoInit(); S.holo.push({ang:Math.atan2(y, x), kind, bits:Math.floor(Math.random()*16), fresh:1}); }
+function holoCount(){ if (!S.holo) holoInit(); const c = {}; for (const h of (S.holo || [])) c[h.kind] = (c[h.kind] || 0) + 1; return c; }
+function drawHoloTop(t, bx, by){
+  if (!S.holo) holoInit(); const R = RS*V.z; if (R < 22) return;
+  ctx.globalCompositeOperation = 'lighter';
+  for (const h of S.holo){ const a = h.ang + t*0.00002, col = HOLO_K[h.kind] || '200,200,255', tw = 0.55 + 0.45*Math.sin(t*0.003 + h.bits);
+    for (let k=0;k<4;k++){ const on = (h.bits >> k) & 1, aa = a + (k - 1.5)*0.012, rr = R*(1.0 + 0.012*k);
+      ctx.fillStyle = `rgba(${col},${((on ? 0.9 : 0.25)*tw*(h.fresh ? 1 : 0.75)).toFixed(3)})`; ctx.fillRect(bx + Math.cos(aa)*rr - 1.2, by + Math.sin(aa)*rr - 1.2, 2.4, 2.4); }
+    if (h.fresh){ h.fresh = Math.max(0, h.fresh - 0.004); ctx.strokeStyle = `rgba(${col},${(0.6*h.fresh).toFixed(3)})`; ctx.beginPath(); ctx.arc(bx + Math.cos(a)*R, by + Math.sin(a)*R, 6 + (1 - h.fresh)*20, 0, TAU); ctx.stroke(); } }
+  ctx.globalCompositeOperation = 'source-over';
+  if (r0() < 6*RS){ ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(200,220,255,0.8)'; ctx.fillText(`HOLOGRAFIKUS FELSZÍN · ${S.holo.length} bejegyzés`, bx, by + R + 16); }
+}
+function drawHoloCockpit(t, bx, by, shPx){
+  if (!S.holo) holoInit(); if (shPx < 25) return;
+  ctx.globalCompositeOperation = 'lighter';
+  for (const h of S.holo){ const a = h.ang - S.ang + t*0.00002, col = HOLO_K[h.kind] || '200,200,255', tw = 0.5 + 0.5*Math.sin(t*0.004 + h.bits*1.7);
+    const x = bx + Math.cos(a)*shPx*0.995, y = by + Math.sin(a)*shPx*0.995; ctx.fillStyle = `rgba(${col},${(0.7*tw).toFixed(3)})`; ctx.fillRect(x - 1, y - 1, 2, 2); }
+  ctx.globalCompositeOperation = 'source-over';
 }
 
 // ---- Küldetések ----
@@ -2038,6 +2089,7 @@ const MISSIONS = {
   future:{n:'Ugrás a jövőbe', d:'A Földön teljen el 1 millió év, a hajón legfeljebb 30 nap. Siess: a játékban minden másodperc egy hajónap. A buborék itt nem segít: abban nincs időtágulás.', t:'Ugrás a jövőbe · Föld ≥ 1 millió év, hajó ≤ 30 nap'},
   theory:{n:'Elmélet-vadász', d:'Ugorj át a horizonton, fedezd fel mind a hat elméletet a 4D térben, és juss ki egy fehér lyukon.', t:'Elmélet-vadász · a lyukba kell bemenned'},
   gw:{n:'Hullámvadász', d:'Légy 3000 egységen belül a kettős lyuktól, amikor az összeolvadás hulláma eléri a hajót. Figyeld a GW-detektort: a csiripelés egyre gyorsul.', t:'Hullámvadász · narancs pont a radaron · légy közel, amikor a hullám ideér'},
+  randevu:{n:'Randevú a Földdel', d:'A Föld 30 földi naponként üzen. A mentőhajó a 360. és 380. földi nap között vár a Föld-kapunál, de a hajódon legfeljebb 120 nap telhet el. Az üzenetek ritmusából látod, milyen gyorsan jár otthon az idő. Tipp: a térkép (M) előre kiírja, mennyi idő telik el otthon.', t:'Randevú · Föld-kapu a 360–380. földi napon · hajóidő legfeljebb 120 nap'},
   novikov:{n:'Üzenet a múltba', d:'Ismeretlen jel érkezik a semmiből. Ugorj a lyukba, keresd meg a tesszeraktot, ahol hátulról látod önmagad, és küldd vissza a jelet a múltba. A kijárat rejtve van, amíg a tesszeraktba nem érsz.', t:() => `Ismeretlen jel érkezett: ${S.code} · forrása nem azonosítható`},
   penrose:{n:'Penrose-bánya', d:'Öt rakományból háromszor nyerj energiát az ergoszférában, aztán szökj el 30 rs-en túlra. Egy menetbe csak egy ledobás fér bele.', t:'Penrose-bánya · ergoszféra 1,6 rs-en belül · a forgás irányába repülve dobj hátra'},
 };
@@ -2054,6 +2106,7 @@ function missionHud(){
   if (m==='theory') return ['Elméletek', `${thCount()} / ${TH_N}`, S.inside ? 'vio' : ''];
   if (m==='gw'){ const g = S.gw, d = Math.hypot(S.x-g.x, S.y-g.y), ph = g.state==='in' ? `spirál ${Math.round(g.t/g.T*100)}%` : (g.state==='ring' ? 'lecsengés' : 'csend');
     return ['Kettős lyuk', `${fmt(d/1000,1)}k / 3k · ${ph}`, d < GW_WIN_D ? 'blue' : '']; }
+  if (m==='randevu'){ const ok = S.tE >= RV_A && S.tE <= RV_B; return ['Randevú', `Föld ${fmt(S.tE,0)}. nap (360–380) · hajó ${fmt(S.tau,0)}/${RV_TAU}`, ok ? 'blue' : (S.tE > RV_B - 8 || S.tau > RV_TAU - 10 ? 'warn' : '')]; }
   if (m==='novikov') return ['Jel', S.loopClosed ? `${S.code} · hurok zárva` : (S.msg ? `${S.code} · küldve: ${S.msg}` : `${S.code} · forrás: ?`), S.loopClosed ? 'blue' : 'vio'];
   if (m==='penrose') return ['Penrose', S.penrose >= PEN_N ? `${PEN_N}/${PEN_N} · szökj 30 rs-en túlra` : `${S.penrose} / ${PEN_N} · rakomány ${S.cargo}`, S.penrose >= PEN_N ? 'blue' : ''];
   return ['Jeladók', `${S.collected} / ${S.beacons.length}`, ''];
@@ -2065,6 +2118,7 @@ function missionStat(){
   if (m==='future') return ['Hajó-keret', `${fmt(S.tau,1)} / ${FUT_TAU} nap`];
   if (m==='theory') return ['Teljesítve', `${thCount()} / ${TH_N} elmélet`];
   if (m==='gw') return ['Távolság az összeolvadáskor', S.gwCaught!=null ? `${fmt(S.gwCaught/1000,2)}k egység` : '–'];
+  if (m==='randevu') return ['Érkezés', `Föld ${fmt(S.tE,0)}. nap · hajó ${fmt(S.tau,1)}. nap`];
   if (m==='novikov') return ['Időhurok', S.loopClosed ? 'bezárult' : 'nyitva maradt'];
   if (m==='penrose') return ['Sikeres ledobás', `${S.penrose} / ${PEN_N}`];
   return ['Jeladók', `${S.collected} / ${S.beacons.length}`];
@@ -2094,6 +2148,7 @@ function checkMission(){
     if (S.gwCaught!=null) endMission(true, 'Elkaptad a csiripelést', `${fmt(S.gwCaught/1000,1)} ezer egységről érzékelted az összeolvadást. 2015. szeptember 14-én a LIGO pontosan ilyen jelet fogott: egy 36 és egy 29 naptömegű lyuk olvadt össze 1,3 milliárd fényévre, és kb. 3 naptömegnyi energia sugárzott szét gravitációs hullámként – a csúcson erősebben, mint a megfigyelhető univerzum összes csillaga együtt. A Földön ez 10⁻²¹-es relatív nyúlást okozott.`, 1500);
     else if (S.gwMissed!=null && !S.gwWarned){ S.gwWarned = true; toast(`Túl messze voltál (${fmt(S.gwMissed/1000,1)}k) – a következő összeolvadás kb. fél perc csend után indul`, 'danger', 4); }
   }
+  else if (m==='randevu') checkRandevu();
   else if (m==='penrose'){
     if (S.penrose >= PEN_N && !S.inside && r0() > PEN_R) endMission(true, 'Energiát nyertél egy fekete lyukból', `Három rakomány zuhant be negatív energiával, és a lyuk forgásából vett energiával szöktél el. Roger Penrose 1969-ben írta le ezt; egy valódi forgó lyuk tömeg-energiájának legfeljebb kb. 29%-a nyerhető ki így. A hajón ${tfmt(S.tau)} telt el.`);
     else if (S.cargo < PEN_N - S.penrose) endMission(false, 'Nem maradt elég rakomány', `${S.penrose} sikeres ledobás a háromból, ${S.cargo} rakomány maradt. A Penrose-folyamathoz az ergoszférán belül (1,6 rs) kell lenned, és a forgás irányába repülve hátrafelé kell dobnod – így a rakomány energiája a végtelenből nézve negatív lesz.`, 1500);
@@ -2561,7 +2616,8 @@ const AP_A = 1100;
 function apTimes(d){ const q = 1 + AP_A*d/(2*C*C); return {tau:2*C/AP_A*Math.acosh(q), t:2*C/AP_A*Math.sqrt(q*q-1), gmax:q}; }
 function apTargets(){
   const L = [{id:'bh', n:'Fekete lyuk', x:0, y:0, stop:30*RS, c:'#ffb04a'}];
-  if (S.mission==='twin') L.push({id:'home', n:'Föld-kapu', x:S.home.x, y:S.home.y, stop:0, c:'#78ffaa'});
+  if (S.mission==='twin' || S.mission==='randevu') L.push({id:'home', n:'Föld-kapu', x:S.home.x, y:S.home.y, stop:0, c:'#78ffaa'});
+  if (S.mission==='randevu') L.push({id:'oort', n:'Oort-felhő széle', x:RV_OORT.x, y:RV_OORT.y, stop:1500, c:'#9fd8ff'});
   for (const b of S.beacons) if (!b.got) L.push({id:'b'+b.id, n:`Jeladó ${b.id}`, x:b.x, y:b.y, stop:0, c:'#82c8ff'});
   L.push({id:'psr', n:'Pulzár', x:S.psr.x, y:S.psr.y, stop:400, c:'#e6ecff'});
   L.push({id:'gw', n:'Kettős lyuk', x:S.gw.x, y:S.gw.y, stop:3000, c:'#ffaa78'});
@@ -2634,7 +2690,7 @@ const ov = $('ov'), card = $('card');
 function showMenu(){
   card.innerHTML = `<div class="eyebrow">Relativisztikus pilótagyakorlat</div>
   <h1>Esemény<span>horizont</span></h1>
-  <p>Egy fekete lyuk körül repülsz. Nyolc küldetés közül választhatsz. Minél gyorsabban mész, és minél közelebb kerülsz a lyukhoz, annál lassabban jár a hajó órája a Földhöz képest.</p>
+  <p>Egy fekete lyuk körül repülsz. Kilenc küldetés közül választhatsz. Minél gyorsabban mész, és minél közelebb kerülsz a lyukhoz, annál lassabban jár a hajó órája a Földhöz képest.</p>
   <div class="eyebrow">Válassz küldetést</div>
   <div class="mlist">${Object.entries(MISSIONS).map(([k,m]) => `<button class="mbtn" type="button" data-m="${k}"><b>${m.n}</b><span>${m.d}</span>${records[k]!=null ? `<i>✓ legjobb: ${tfmt(records[k])} hajóidő</i>` : ''}</button>`).join('')}</div>
   <ul>

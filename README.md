@@ -14,6 +14,7 @@ Relativisztikus pilótagyakorlat egy fekete lyuk körül: időtágulás, árapá
 | Ugrás a jövőbe | A Földön teljen el 1 millió év, a hajón legfeljebb 30 nap. |
 | Elmélet-vadász | Fedezd fel mind a hat elméletet a 4D térben, és juss ki egy fehér lyukon. |
 | Hullámvadász | Légy 3000 egységen belül a kettős lyuktól, amikor az összeolvadás hulláma eléri a hajót. |
+| Randevú a Földdel | A mentőhajó a 360–380. földi napon vár a Föld-kapunál, a hajódon legfeljebb 120 nap telhet el. Az otthoni üzenetek ritmusa mutatja, milyen gyorsan jár ott az idő. |
 | Üzenet a múltba | Ismeretlen jel érkezik. Keresd meg a tesszeraktot a lyukban, ahol hátulról látod önmagad, és küldd vissza a jelet a múltba – különben paradoxon. |
 | Penrose-bánya | Öt rakományból háromszor nyerj energiát az ergoszférában, aztán szökj el 30 rs-en túlra. |
 
@@ -24,6 +25,8 @@ A játék küldetésenként megjegyzi az öt legjobb (legrövidebb hajóidejű) 
 ### 1.8 – 2026. november 17.
 - Tesszerakt a 4D térben: itt az idő is térirányként viselkedik – a néhány másodperccel korábbi önmagadat látod magad előtt, hátulról, egymás mögött, egy végtelen folyosóban. A FOTON gombbal jelet küldhetsz a múltba (röviden = pont, hosszan = vonal).
 - Új küldetés: Üzenet a múltba. A jel, amit az elején kapsz, a kijárat irányát kódolja, és tőled jön: a tesszeraktból kell visszaküldened. Ha nem teszed, paradoxon (Novikov önkonzisztencia-elve, bootstrap-paradoxon). A fehér lyuk rejtve van, amíg a tesszeraktba nem érsz.
+- Új küldetés: Randevú a Földdel. Otthonról 30 földi naponként jön egy üzenet; hogy a hajón milyen sűrűn érkeznek, az a sebességedtől és a lyuk közelségétől függ. Minden üzenet kiírja, mennyi hajóidő telt el az előző óta, és hogy ebben az ütemben mikor jön el a 360. nap. Új autopilóta-cél: az Oort-felhő széle (kb. 0,4 fényév; oda-vissza nagyjából 300 földi nap, 19 hajónap).
+- A horizont emlékezete (holografikus elv): ami a lyukba esik – foton, rakomány, te magad –, annak jele megjelenik a horizont felszínén, a lyuk régebbi táplálékai mellett. Közel érve magyarázókártya: Bekenstein–Hawking-entrópia, 't Hooft–Susskind, információs paradoxon.
 - Easter egg: a 4D tér mélyén két titkos bébi-univerzum rejtőzik – bennük a szerző két másik játéka (Kísérleti Lőtér, Raktár 3D). Ha belerepülsz, a buborék elnyel, és **átlépsz** a másik játékba: az teljes képernyőn fut, az Eseményhorizont addig áll. A „Vissza a fekete lyukba” gombbal ott folytatod, ahol abbahagytad.
 
 ### 1.7 – 2026. november 17.
