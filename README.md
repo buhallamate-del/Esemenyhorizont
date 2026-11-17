@@ -20,6 +20,11 @@ A játék küldetésenként megjegyzi az öt legjobb (legrövidebb hajóidejű) 
 
 ## Változások
 
+### 1.3 – 2026. november 17.
+- Irányítópultosabb kezelőfelület: MFD-kijelző kerettel, nyolclámpás hibajelző sor (GRAV, ÁRAPÁLY, ERGO, GW, AUTOP, BUBORÉK, EGZOT, 4D), radar iránylépték és pásztázó sugár, fizikai gombok LED-del, részletesebb pilótafülke-konzol.
+- Új térhajtómű-nézet a pilótafülkében: csillagcsíkok, hullámzó téridő-gyűrűk, buborékfal, haladásjelző a szélvédőn.
+- Sötétebb lyukbelső és négy új jelenség: beeső anyag-szálak (spagettifikáció), a kinti ég (tévhit-cáfolattal), BKL-káosz a szingularitás közelében, Penrose-diagram a műszerfalon.
+
 ### 1.2 – 2026. november 17.
 - Új küldetés: Hullámvadász – a GW150914 mintájára összeolvadó kettős lyuk hullámát kell közelről elkapni.
 - Rekordtábla: küldetésenként az öt legjobb teljesítés a záró kártyán.
