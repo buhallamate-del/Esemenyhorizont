@@ -822,8 +822,8 @@ function drawCockpitInner(t){
     ctx.fillStyle = g; ctx.fillRect(P[0]-R,P[1]-R,R*2,R*2); }
   ctx.globalCompositeOperation = 'source-over';
   const bdx = -S.x, bdy = -S.y, bd = Math.hypot(bdx,bdy), bnx = bdx/bd, bny = bdy/bd;
-  const thE = Math.min(1.3, Math.sqrt(2*RS/bd));
-  const shA = Math.asin(Math.min(1, SHADOW/bd));
+  const thE = Math.min(1.3, Math.sqrt(2*RS/bd)), rM = bd/(RS/2), LTb = rM > 6.5 ? lensTable(rM) : null;
+  const shA = LTb ? LTb.thS : Math.asin(Math.min(1, SHADOW/bd));
   const streak = beta>0.3 ? (beta-0.3)**2*gamma*30 : 0;
   ctx.lineCap = 'round';
   const star = (nx,ny,nz,s,al0) => {
@@ -845,6 +845,11 @@ function drawCockpitInner(t){
     const cd = clamp(s.x*bnx + s.y*bny, -1, 1), del = Math.acos(cd);
     let px = s.x - bnx*cd, py = s.y - bny*cd, pz = s.z; const pl = Math.hypot(px,py,pz);
     if (pl < 1e-6) continue; px/=pl; py/=pl; pz/=pl;
+    if (LTb){   // pontos elhajlás: elsődleges, másodlagos (túloldali) és harmadrendű (a fotongyűrű mellett) kép
+      for (const [sg, tgt, w] of [[1, del, 1], [-1, -del, 0.7], [1, del - TAU, 0.45]]){ const im = lensInv(LTb, tgt); if (!im) continue; const [a, mu] = im;
+        if (sg < 0 && a > 0.6) continue; const ca = Math.cos(a), sa = Math.sin(a)*sg;
+        star(bnx*ca + px*sa, bny*ca + py*sa, pz*sa, s, s.b*w*clamp(0.55 + 0.45*mu, 0.15, 2.2)); }
+      continue; }
     const root = Math.sqrt(del*del + 4*thE*thE);
     const d1 = (del + root)/2;
     const mag = Math.min(2.5, d1/Math.max(del,1e-3));
@@ -1580,22 +1585,51 @@ const BH_RIN = 6, BH_ROUT = 20, BH_NB = 1300, BH_DB = 0.025, BH_DPHI = 0.01, BH_
 const BH = {U:null, END:null, CAP:null, TEX:null};
 function bhTrace(){
   if (BH.U) return;
-  const U = new Float32Array(BH_NB*BH_NPHI), END = new Int16Array(BH_NB), CAP = new Uint8Array(BH_NB), h = BH_DPHI, f = u => 3*u*u - u;
+  const U = new Float32Array(BH_NB*BH_NPHI), END = new Int16Array(BH_NB), CAP = new Uint8Array(BH_NB), PERI = new Int16Array(BH_NB), PHIE = new Float32Array(BH_NB), h = BH_DPHI, f = u => 3*u*u - u;
   for (let j=0;j<BH_NB;j++){ const b = (j + 0.5)*BH_DB, o = j*BH_NPHI; let u = 0, v = 1/b, k = 1, cap = 1;
     for (; k<BH_NPHI; k++){
       const k1u = v, k1v = f(u), k2u = v + 0.5*h*k1v, k2v = f(u + 0.5*h*k1u), k3u = v + 0.5*h*k2v, k3v = f(u + 0.5*h*k2u), k4u = v + h*k3v, k4v = f(u + h*k3u);
       u += h/6*(k1u + 2*k2u + 2*k3u + k4u); v += h/6*(k1v + 2*k2v + 2*k3v + k4v);
       if (u >= 0.5){ U[o+k] = 0.5; k++; break; }        // a horizont alá ért: árnyék
-      if (u <= 0){ cap = 0; break; }                      // kiszökött a végtelenbe
-      U[o+k] = u; }
+      if (u <= 0){ cap = 0; PHIE[j] = ((k - 1) + U[o+k-1]/(U[o+k-1] - u))*h; break; }   // kiszökött a végtelenbe: ennyi szöget söpört végig
+      U[o+k] = u; if (u > U[o + PERI[j]]) PERI[j] = k; }
     END[j] = k; CAP[j] = cap; }
   // a korong anyaga: sugárirányban sűrű, körben ritka hullámok – a differenciális forgás spirálcsíkokká nyírja őket
   const NR = 256, NP = 512, TEX = new Float32Array(NR*NP); let sd = 4242; const rnd = () => (sd = (sd*16807) % 2147483647)/2147483647;
   const W8 = []; for (let k=0;k<14;k++) W8.push([1 + Math.floor(rnd()*9), 6 + rnd()*40, rnd()*TAU, 0.3 + rnd()*0.7]);
   for (let i=0;i<NR;i++) for (let k=0;k<NP;k++){ const ph = k/NP*TAU, rr = i/NR; let v = 0, n = 0; for (const [m, q, p0, a] of W8){ v += a*Math.sin(m*ph + q*rr + p0); n += a; }
     TEX[i*NP + k] = 0.55 + 0.45*Math.pow(0.5 + 0.5*v/n, 1.6)*1.6; }
-  Object.assign(BH, {U, END, CAP, TEX, NR, NP});
+  Object.assign(BH, {U, END, CAP, PERI, PHIE, TEX, NR, NP});
 }
+// A csillagok képe ugyanebből a pályakészletből: a hajóról θ szögben induló sugár (visszafelé követve) b = r·sinθ/√(1−2M/r)
+// ütközési paraméterrel halad, és Φ szöget söpör végig, mire a végtelenbe ér. Az ott álló csillag a lyuk irányától δ = π − Φ
+// szögre van. A δ(θ) táblát megfordítva minden csillaghoz megkapjuk a képeit: az elsődlegest, a lyuk túloldalán a másodlagost,
+// és a fotongyűrű mellett a harmadrendűt. Nincs vékonylencse-közelítés: ez a pontos Schwarzschild-elhajlás, véges távolságból.
+const LT = {r:-1};
+function lensTable(r){
+  if (Math.abs(r - LT.r) < r*0.003) return LT; bhTrace();
+  const n = 600, th = new Float32Array(n), de = new Float32Array(n), sq = Math.sqrt(1 - 2/r), uo = 1/r, thS = Math.asin(Math.min(1, BH_BC*sq/r)), thM = Math.PI*0.5;
+  let last = -1e9;
+  for (let i=0;i<n;i++){ const q = (i + 0.5)/n, a = thS + (thM - thS)*q*q*q; th[i] = a;
+    const b = r*Math.sin(a)/sq, j = Math.floor(b/BH_DB); let d;
+    if (j >= BH_NB) d = a - 4/b;                          // messze a lyuktól: gyenge elhajlás, 4M/b
+    else if (BH.CAP[j]) d = -1e3;                         // a horizontba esne: árnyék
+    else { const o = j*BH_NPHI; let lo = 0, hi = BH.PERI[j];
+      if (BH.U[o + hi] < uo) d = a;                       // (a hajó a pericentrumon belül – nem fordul elő 6M fölött)
+      else { while (hi - lo > 1){ const m = (lo + hi) >> 1; if (BH.U[o + m] < uo) lo = m; else hi = m; }
+        const ul = BH.U[o + lo], uh = BH.U[o + hi], phIn = (lo + (uo - ul)/((uh - ul) || 1))*BH_DPHI; d = Math.PI - (BH.PHIE[j] - phIn); } }
+    if (d < last) d = last + 1e-6; last = d; de[i] = d; }
+  Object.assign(LT, {r, th, de, n, thS, thM}); return LT;
+}
+// δ → θ (és a nagyítás); a δ(θ) szigorúan nő
+function lensInv(L, d){
+  const n = L.n, de = L.de, th = L.th; if (d <= de[0]) return null;
+  if (d >= de[n-1]){ const a = d + (L.thM - de[n-1])*Math.min(1, L.thM/Math.max(d, 1e-3)); return [a, 1]; }
+  let lo = 0, hi = n - 1; while (hi - lo > 1){ const m = (lo + hi) >> 1; if (de[m] < d) lo = m; else hi = m; }
+  const q = (d - de[lo])/((de[hi] - de[lo]) || 1e-9), a = th[lo] + (th[hi] - th[lo])*q, dtd = (th[hi] - th[lo])/((de[hi] - de[lo]) || 1e-9);
+  const mu = Math.abs(Math.sin(a)/(Math.sin(d) || 1e-4)*dtd); return [a, Math.min(4, mu)];
+}
+
 function bhLookup(N, L, inc, gain = 1){
   bhTrace();
   const n = N*N, R = new Float32Array(n), AZ = new Float32Array(n), G = new Float32Array(n), F = new Float32Array(n), SH = new Uint8Array(n), OM = new Float32Array(n), RI = new Int32Array(n), BC = new Float32Array(n*3);
