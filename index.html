@@ -374,8 +374,66 @@ function stepOut(dt, input, dtp){
 }
 
 // ---- Szimuláció: a lyuk belseje, 4D tér ----
+// ---- Zuhanás a lyukba: lassított átmenet a horizonton át a 4D térbe ----
+// Fizikailag: egy ekkora (szupernagy tömegű) lyuknál a horizonton az árapály még elviselhető, és helyben semmi különös nem
+// történik – nincs fal, nincs villanás. A kívülről nézett „örökké lassuló, vörösödő” hajó a távoli megfigyelő képe, nem a pilótáé.
+function startFall(){ S.fall = {t:0, T:7}; S.ap = null; S.thrust = 0; wormEl.hidden = true; alcEl.hidden = true; toastEl.className = 'toast'; toastT = 0; }
+function stepFall(dt){ const F = S.fall; F.t += dt; S.tau += dt; S.tE += dt; S.gamma = 1; S.beta = 0; S.thrust = 0; S.dtc = dt;
+  if (F.t >= F.T){ S.fall = null; enterInside(); } }
+const FST = []; { let sd = 777; const r = () => (sd = (sd*16807) % 2147483647)/2147483647; for (let i=0;i<520;i++) FST.push({a:r()*TAU, u:r(), b:0.35 + r()*0.65, w:r()}); }
+function drawFall(t){
+  const F = S.fall, p = clamp(F.t/F.T, 0, 1), M = Math.max(W,H), m = Math.min(W,H), cx = W/2, cy = H*0.46;
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
+  // a növekvő árapály: a kép függőlegesen egyre nyúlik, vízszintesen összenyomódik
+  const st = 1 + 0.35*sstep(0.3, 0.85, p);
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(1/Math.sqrt(st), st); ctx.translate(-cx, -cy);
+  // 1) az utolsó pillanatok a horizont előtt: az árnyék betölti az eget, a csillagok képe a peremére torlódik (Einstein-gyűrű)
+  const pa = sstep(0, 0.42, p), sh = m*0.14*Math.exp(Math.log(M*1.25/(m*0.14))*Math.pow(pa, 1.7));
+  if (p < 0.5){ const fade = 1 - sstep(0.28, 0.46, p);
+    ctx.globalAlpha = fade; bhDraw(BHC.edge(), cx, cy, sh/BH_BC, t, 0); ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'lighter';
+    for (const s of FST){ const rr = sh*(1.015 + 1.4*s.u*s.u*s.u), al = s.b*fade*clamp(1.4 - (rr/sh - 1)*0.6, 0.2, 1);
+      ctx.fillStyle = s.w < 0.75 ? `rgba(225,232,255,${al.toFixed(3)})` : `rgba(255,215,175,${al.toFixed(3)})`; const z = rr/sh < 1.08 ? 1.6 : 1.2;
+      ctx.fillRect(cx + Math.cos(s.a)*rr, cy + Math.sin(s.a)*rr*0.98, z, z); }
+    ctx.globalCompositeOperation = 'source-over'; }
+  // 2) átlépés: nincs villanás – csak egy halvány, lassú lüktetés jelzi a pillanatot
+  const pc = Math.exp(-Math.pow((p - 0.47)/0.05, 2));
+  if (pc > 0.01){ const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, M*0.7); g.addColorStop(0, `rgba(150,110,255,${(0.10*pc).toFixed(3)})`); g.addColorStop(1, 'rgba(60,30,120,0)');
+    ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(0,0,W,H); ctx.globalCompositeOperation = 'source-over'; }
+  // 3) a horizonton belül: a kinti világ fénye egyre kisebb körbe szűkül, és vörösödik
+  if (p > 0.44 && p < 0.9){ const q = sstep(0.44, 0.86, p), R = M*0.75*(1 - q) + 6, red = q, fade = 1 - sstep(0.78, 0.9, p);
+    const col = red < 0.5 ? mixC('225,232,255', '255,190,130', red*2) : mixC('255,190,130', '200,40,25', (red - 0.5)*2);
+    ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createRadialGradient(cx, cy, R*0.85, cx, cy, R*1.25); g.addColorStop(0, `rgba(${col},0)`); g.addColorStop(0.35, `rgba(${col},${(0.22*fade).toFixed(3)})`); g.addColorStop(1, `rgba(${col},0)`);
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R*1.25, 0, TAU); ctx.fill();
+    for (const s of FST){ const rr = R*(1 + 0.12*(s.u - 0.5)), al = s.b*fade*(1 - 0.6*red); ctx.fillStyle = `rgba(${col},${al.toFixed(3)})`; ctx.fillRect(cx + Math.cos(s.a)*rr, cy + Math.sin(s.a)*rr, 1.4, 1.4); }
+    // a beeső fény az árapály miatt függőleges szálakká nyúlik
+    const sp = sstep(0.55, 0.8, p)*fade;
+    if (sp > 0.01) for (let i=0;i<60;i++){ const s = FST[i*7], x = cx + (s.u - 0.5)*M*0.9, L = M*(0.1 + 0.3*s.b)*sp, y = cy + Math.sin(s.a)*M*0.35 - ((t*0.25*(0.5 + s.b)) % (M*0.9)) + M*0.45;
+      const gg = ctx.createLinearGradient(x, y - L, x, y + L); gg.addColorStop(0, `rgba(${col},0)`); gg.addColorStop(0.5, `rgba(${col},${(0.18*sp*s.b).toFixed(3)})`); gg.addColorStop(1, `rgba(${col},0)`);
+      ctx.fillStyle = gg; ctx.fillRect(x - 0.8, y - L, 1.6, L*2); }
+    ctx.globalCompositeOperation = 'source-over'; }
+  ctx.restore();
+  // 4) sötétség, aztán előderengenek a 4D tér vonalai
+  const pd = sstep(0.86, 1, p); if (pd > 0) drawTess(t, cx, cy, m*0.42, 0.07*pd);
+  // feliratok
+  const caps = [[0.02, 0.36, 'Az utolsó pillanatok a horizont előtt', 'Az árnyék betölti az eget, a csillagok képe a peremére torlódik.'],
+    [0.38, 0.6, 'ESEMÉNYHORIZONT', 'Helyben nincs fal és nincs villanás. Kintről nézve viszont a hajó soha nem ér ide: egyre lassul és vörösödik.'],
+    [0.62, 0.84, 'A horizonton belül', 'Minden jövőbeli út befelé vezet. A kinti világ fénye egyre kisebb körbe szűkül és vörösödik.'],
+    [0.86, 1.01, 'Négydimenziós tér', 'Innentől a játék a spekulatív elméletek terepe.']];
+  ctx.textAlign = 'center';
+  for (const [a, b, h1, h2] of caps){ const al = sstep(a, a + 0.05, p)*(1 - sstep(b - 0.05, b, p)); if (al <= 0.01) continue;
+    ctx.font = '600 13px "Space Grotesk", "IBM Plex Mono", sans-serif'; ctx.fillStyle = `rgba(235,230,250,${(0.95*al).toFixed(3)})`; ctx.fillText(h1.toUpperCase(), cx, Math.max(236, H*0.3));
+    ctx.font = '400 12px "IBM Plex Mono", monospace'; ctx.fillStyle = `rgba(205,200,225,${(0.85*al).toFixed(3)})`;
+    const words = h2.split(' '), lines = []; let ln = ''; const maxW = Math.min(W*0.85, 560);
+    for (const w of words){ const tst = ln ? ln + ' ' + w : w; if (ctx.measureText(tst).width > maxW){ lines.push(ln); ln = w; } else ln = tst; } lines.push(ln);
+    lines.forEach((l, i) => ctx.fillText(l, cx, Math.max(236, H*0.3) + 20 + i*16)); }
+  ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.fillStyle = 'rgba(200,190,230,0.6)';
+  ctx.fillText(`r = ${p < 0.5 ? fmt(1 + 0.02*(1 - sstep(0.36, 0.5, p)), 2) : fmt(1 - 0.9*sstep(0.5, 0.9, p), 2)} rs · hajóidő +${fmt(F.t, 1)} nap`, cx, Math.max(236, H*0.3) - 22);
+}
+
 function enterInside(){
-  S.inside = true; S.visits++; S.enterT = S.tE; S.flash = 1;
+  S.inside = true; S.visits++; S.enterT = S.tE; S.flash = 0; S.fadeIn = 1;
   S.x = 0; S.y = 1100; S.w = 0; S.px = 180; S.py = 0; S.trail = []; S.camx = S.x; S.camy = S.y;
   const a = Math.random()*TAU, d = 1800 + Math.random()*700;
   S.wh = {x:Math.cos(a)*d, y:Math.sin(a)*d, w:(Math.random()<.5?-1:1)*(380+Math.random()*320)};
@@ -442,6 +500,7 @@ function update(dt){
         else if (d4 < 520 && !toastKey) toast('Szingularitás közelében – lépj el a W-tengelyen!', 'danger', 1.6);
         const wh = S.wh; if (Math.hypot(S.x-wh.x, S.y-wh.y, S.w-wh.w) < 170) exitOut();
       }
+    } else if (S.fall){ stepFall(dt);
     } else if (S.worm){ stepWorm(dt);
     } else if (S.alc){ stepAlc(dt);
     } else {
@@ -457,7 +516,7 @@ function update(dt){
         checkTwin(); checkWorms();
         const tg = tidalG(r/RS);
         if (tg > HULL_G){ die('tidal'); }
-        else if (r < RS) enterInside();
+        else if (r < RS) startFall();
         else if (tg > 100 && !toastKey) toast(`Árapály: ${sci(tg)} g – a hajótest ${sci(HULL_G)} g-t bír`, 'danger', 1.6);
         else if (r < ISCO && !toastKey) toast('3 rs-en belül nincs stabil pálya', 'danger', 1.6);
         else if (r < 7*RS && (S.x*S.vx+S.y*S.vy)<0 && !toastKey) toast('Gravitációs riasztás – fordulj el a lyuktól!', 'danger', 1.6);
@@ -499,7 +558,8 @@ function update(dt){
   const base = Math.min(W,H)/1500;
   const zt = base * (S.inside ? 1.25 : 1.4/(1 + 0.7*S.beta)) * (mode==='menu'?0.75:1);
   S.zoom += (zt - S.zoom)*(1-Math.exp(-dt*2));
-  S.flash = Math.max(0, S.flash - dt*1.2);
+  S.flash = Math.max(0, S.flash - dt*1.2); S.fadeIn = Math.max(0, (S.fadeIn || 0) - dt*0.6);
+  S.accVis = (S.accVis || 0) + (clamp(S.thrust/1100, 0, 1) - (S.accVis || 0))*(1 - Math.exp(-dt*3));
   if (discTimer>0){ discTimer -= dt; if (discTimer<=0) discEl.hidden = true; }
   if (toastT>0){ toastT -= dt; if (toastT<=0){ toastEl.className='toast'; toastKey=''; } }
 }
@@ -515,6 +575,7 @@ function draw(t){
   if (mode==='play' && !S.inside && r < 4*RS){ const q = (4*RS - r)/(3*RS); shx = (Math.random()-.5)*6*q; shy = (Math.random()-.5)*6*q; }
   V = {z, rot, cr:Math.cos(rot), sr:Math.sin(rot), cx:W/2+shx, cy:H*0.5+shy};
   ctx.globalCompositeOperation = 'source-over';
+  if (S.fall){ drawFall(t); filmGrain(); drawControls(t); return; }
   if (S.worm){ drawWormTransit(t); filmGrain(); drawControls(t); return; }
   if (view==='cockpit'){ const rr = -(S.ang + Math.PI/2); V.rot = rr; V.cr = Math.cos(rr); V.sr = Math.sin(rr); drawCockpit(t); }
   else { if (S.inside) drawInside(t); else drawOutside(t); drawCommon(t); }
@@ -533,7 +594,7 @@ function drawOutside(t){
   const vdx = (S.vx*cr - S.vy*sr)/sp, vdy = (S.vx*sr + S.vy*cr)/sp;
   const thetaE = 3.2*RS*z, shadowR = SHADOW*z;
   const D = Math.max(W,H) + 80;
-  const streak = beta>0.35 ? (beta-0.35)**2 * gamma * 26 : 0;
+  const streak = beta>0.35 ? Math.min(28, (beta-0.35)*65)*S.accVis : 0;
   ctx.lineCap = 'round';
   for (const s of stars){
     const ux = ((s.u*D - S.camx*z*s.d) % D + D) % D - D/2;
@@ -560,13 +621,13 @@ function drawOutside(t){
     const mag = Math.min(3, r1/lr);
     let cR=235, cG=238, cB=250;
     if (s.warm>0.8){ cR=255; cG=226; cB=196; } else if (s.warm<0.15){ cR=200; cG=220; cB=255; }
-    if (Dop>1){ const q = Math.min(1,(Dop-1)/2); cR += (120-cR)*q; cG += (190-cG)*q; cB += (255-cB)*q; }
+    if (Dop>1){ const q = Math.min(1,(Dop-1)/3); cR += (175-cR)*q; cG += (205-cG)*q; cB += (255-cB)*q; }
     else if (Dop<1){ const q = Math.min(1,(1-Dop)*1.6); cR += (255-cR)*q; cG += (90-cG)*q; cB += (60-cB)*q; }
     const al = clamp(s.b * Math.pow(Dop,1.2) * (0.6+0.4*mag) * (Dop < 0.6 ? Math.exp(-(0.6-Dop)*8) : 1), 0, 1);
     const rgb = `${cR|0},${cG|0},${cB|0}`;
     const sz = s.s * (mag>1.4 ? 1.5 : 1);
     if (inView){
-      if (streak>0.5){ ctx.strokeStyle = `rgba(${rgb},${al.toFixed(3)})`; ctx.lineWidth = sz; ctx.beginPath(); ctx.moveTo(px,py);
+      if (streak>0.5){ ctx.strokeStyle = `rgba(${rgb},${(al*0.55).toFixed(3)})`; ctx.lineWidth = sz; ctx.beginPath(); ctx.moveTo(px,py);
         const L = streak*Math.min(2.5,Dop); ctx.lineTo(px - vdx*L, py - vdy*L); ctx.stroke(); }
       else { ctx.fillStyle = `rgba(${rgb},${al.toFixed(3)})`; ctx.fillRect(px, py, sz, sz); }
     }
@@ -824,21 +885,23 @@ function drawCockpitInner(t){
   const bdx = -S.x, bdy = -S.y, bd = Math.hypot(bdx,bdy), bnx = bdx/bd, bny = bdy/bd;
   const thE = Math.min(1.3, Math.sqrt(2*RS/bd)), rM = bd/(RS/2), LTb = rM > 6.5 ? lensTable(rM) : null;
   const shA = LTb ? LTb.thS : Math.asin(Math.min(1, SHADOW/bd));
-  const streak = beta>0.3 ? (beta-0.3)**2*gamma*30 : 0;
+  // állandó sebességnél a csillagok nem húznak csíkot (a kép áll) – csak gyorsításkor jelenik meg egy rövid, halvány elmosódás
+  const streak = beta>0.3 ? Math.min(24, (beta-0.3)*55)*S.accVis : 0;
   ctx.lineCap = 'round';
   const star = (nx,ny,nz,s,al0) => {
     const [ax,ay,az,D] = aber(nx,ny,nz); const P = proj(ax,ay,az); if (!P) return;
     const px = hcx + (P[0]-hcx)*(1+S.hw), py = hcy + (P[1]-hcy)*(1-S.hw); if (px<-20||px>W+20||py<-20||py>H+20) return;
     let cR=235, cG=238, cB=250;
     if (s.warm>0.8){ cR=255; cG=226; cB=196; } else if (s.warm<0.15){ cR=200; cG=220; cB=255; }
-    if (D>1){ const q = Math.min(1,(D-1)/2); cR += (120-cR)*q; cG += (190-cG)*q; cB += (255-cB)*q; }
-    else if (D<1){ const q = Math.min(1,(1-D)*1.6); cR += (255-cR)*q; cG += (90-cG)*q; cB += (60-cB)*q; }
+    if (D>1){ const q = Math.min(1,(D-1)/3); cR += (175-cR)*q; cG += (205-cG)*q; cB += (255-cB)*q; }
+    else if (D<1){ const q = Math.min(1,(1-D)*1.6); cR += (255-cR)*q; cG += (120-cG)*q; cB += (80-cB)*q; }
     // előre kék és fényesebb, hátrafelé a csillag fénye az infravörösbe csúszik és kihuny
     const al = clamp(al0*Math.pow(D,1.2)*(D < 0.6 ? Math.exp(-(0.6-D)*8) : 1), 0, 1); if (al < 0.03) return;
     const col = `rgba(${cR|0},${cG|0},${cB|0},${al.toFixed(3)})`;
     if (streak>0.5){ let dx = px - (apex?apex[0]:hcx), dy = py - (apex?apex[1]:hcy); const m = Math.hypot(dx,dy)||1;
       const L = streak*Math.min(2.5,D)*Math.min(1, m/150);
-      ctx.strokeStyle = col; ctx.lineWidth = s.s; ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(px + dx/m*L, py + dy/m*L); ctx.stroke(); }
+      ctx.strokeStyle = col; ctx.lineWidth = s.s; ctx.globalAlpha = 0.55; ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(px + dx/m*L, py + dy/m*L); ctx.stroke(); ctx.globalAlpha = 1;
+      ctx.fillStyle = col; ctx.fillRect(px,py,s.s,s.s); }
     else { ctx.fillStyle = col; ctx.fillRect(px,py,s.s,s.s); }
   };
   for (const s of CEL){
@@ -858,6 +921,15 @@ function drawCockpitInner(t){
     if (d2 > shA && d2 < thE*1.1) star(bnx*Math.cos(d2)-px*Math.sin(d2), bny*Math.cos(d2)-py*Math.sin(d2), -pz*Math.sin(d2), s, s.b*0.5);
   }
 
+  // csillagív (starbow): a teljes égbolt fénye előre torlódik. Az eredetileg oldalt (90°) lévő csillagok a cos θ' = β szögre kerülnek;
+  // ezen belül kékes-fehér derengés, a peremén narancs, kívül egyre sötétebb ég – lágy átmenetekkel, csíkok nélkül.
+  if (apex && beta > 0.5){ const q = clamp((beta - 0.5)/0.45, 0, 1), th = Math.acos(Math.min(1, beta)), Rp = clamp(f*Math.tan(th) || 30, 30, Math.max(W,H)*1.2);
+    const g = ctx.createRadialGradient(apex[0], apex[1], 0, apex[0], apex[1], Rp*1.35);
+    g.addColorStop(0, `rgba(215,228,255,${(0.20*q).toFixed(3)})`); g.addColorStop(0.35, `rgba(200,215,255,${(0.10*q).toFixed(3)})`);
+    g.addColorStop(0.72, `rgba(255,236,215,${(0.06*q).toFixed(3)})`); g.addColorStop(0.88, `rgba(255,150,95,${(0.05*q).toFixed(3)})`); g.addColorStop(1, 'rgba(255,90,60,0)');
+    ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(0,0,W,H); ctx.globalCompositeOperation = 'source-over';
+    const dk = ctx.createRadialGradient(apex[0], apex[1], Rp*1.1, apex[0], apex[1], Rp*1.1 + Math.max(W,H));   // hátrafelé a fény az infravörösbe csúszik: sötétebb ég
+    dk.addColorStop(0, 'rgba(0,0,0,0)'); dk.addColorStop(1, `rgba(0,0,0,${(0.55*q).toFixed(3)})`); ctx.fillStyle = dk; ctx.fillRect(0,0,W,H); }
   // kozmikus háttérsugárzás: 2,7 K × D. Kb. γ ≈ 500 fölött előre látható vörös-narancs izzássá kékül
   if (apex && Dmax > 150){ const T = 2.725*Dmax, q = clamp((Math.log10(Dmax) - 2.2)/1.0, 0, 1);
     const col = T < 1800 ? '255,70,40' : (T < 3500 ? '255,150,80' : (T < 6000 ? '255,225,190' : '210,225,255'));
@@ -933,9 +1005,12 @@ function drawDust(f, hcx, hcy, fx, fy, rxv, ryv, col){
     const kk = 0.035, [qx, qy] = contract(wx + S.vx*kk*g, wy + S.vy*kk*g);
     const a2 = qx*fx + qy*fy, b2 = qx*rxv + qy*ryv;
     const x2 = hcx + f*b2/Math.max(5,a2), y2 = hcy - f*p.z/Math.max(5,a2);
-    const al = clamp(250/a, 0.05, 0.6);
-    ctx.strokeStyle = col + al.toFixed(3) + ')'; ctx.lineWidth = clamp(300/a, 0.6, 2.5);
-    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x2,y2); ctx.stroke();
+    // nagy sebességnél a csíkok rövidebbek és halványabbak, hogy ne karcolják a képet
+    let ex = x2 - x, ey = y2 - y; const el = Math.hypot(ex, ey), mx = 110; if (el > mx){ ex *= mx/el; ey *= mx/el; }
+    const al = clamp(250/a, 0.05, 0.6)*clamp(1.6/(1 + 0.12*(g - 1)), 0.3, 1);
+    const lg = ctx.createLinearGradient(x, y, x + ex, y + ey); lg.addColorStop(0, col + al.toFixed(3) + ')'); lg.addColorStop(1, col + '0)');
+    ctx.strokeStyle = lg; ctx.lineWidth = clamp(300/a, 0.6, 1.8);
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x + ex, y + ey); ctx.stroke();
   }
 }
 
@@ -1085,6 +1160,7 @@ function drawControls(t){
     ctx.fillStyle = 'rgba(200,175,255,0.95)'; ctx.fillText(`AUTOPILÓTA → ${S.ap.n} · ${fmtLy(Math.max(0,d))}`, W/2, H - SA.b - 22 - 132 - 12 - 44 - 10); }
   if (S.gwFlash>0 && !S.inside){ ctx.fillStyle = `rgba(220,210,255,${(S.gwFlash*0.12).toFixed(3)})`; ctx.fillRect(0,0,W,H); }
   if (S.flash>0){ ctx.fillStyle = `rgba(235,225,255,${(S.flash*0.85).toFixed(3)})`; ctx.fillRect(0,0,W,H); }
+  if (S.fadeIn>0){ ctx.fillStyle = `rgba(2,1,6,${Math.min(1, S.fadeIn).toFixed(3)})`; ctx.fillRect(0,0,W,H); }
 }
 
 function drawRadar(){

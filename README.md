@@ -20,6 +20,11 @@ A játék küldetésenként megjegyzi az öt legjobb (legrövidebb hajóidejű) 
 
 ## Változások
 
+### 1.7 – 2026. november 17.
+- Kíméletesebb fénysebesség-közeli utazás: állandó sebességnél nincsenek csillagcsíkok (a kép ilyenkor fizikailag áll), csak gyorsításkor egy rövid, halvány elmosódás. Helyette lágy „csillagív”: az égbolt fénye előre torlódik a cos θ' = β szögön belülre, kékes-fehér középpel és narancs peremmel, hátrafelé sötétülő éggel. Szelídebb Doppler-színek, rövidebb, halványuló porcsíkok.
+- Zuhanás a lyukba villanás helyett 7 másodperces, lassított átmenet: az árnyék betölti az eget, a csillagok képe a peremére torlódik; a horizonton nincs villanás, csak egy halk lüktetés; belül a kinti világ fénye egyre kisebb, vörösödő körbe szűkül, az árapály függőlegesen nyújtja a képet; sötétség, majd előderengő 4D tér. Feliratok magyarázzák, mi történik és mi nem.
+- Javítás: β ≥ 1 kerekítésnél a csillagív nem dob hibát.
+
 ### 1.6 – 2026. november 17.
 - Interstellar-szerű fekete lyuk valódi fénypálya-követéssel: a játék induláskor 1300 fénysugár pályáját számolja ki Schwarzschild-téridőben (u'' = 3Mu² − u), és minden képpontnál megkeresi, hol metszi a sugár a korong síkját. Így áll elő a filmből ismert kép: a korong túloldala a lyuk fölé és alá hajlik, a közeli oldal előtte halad el, a lyuk körül vékony fotongyűrű.
 - A korong fizikája: vékony korong a legbelső stabil pályától (6M) 20M-ig, differenciális (Kepler-) forgással; a gravitációs vöröseltolódás és a keringés Doppler-hatása színezi és fényesíti (a felénk keringő oldal sokkal fényesebb – a film ezt művészi okból kihagyta, itt benne van).
