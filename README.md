@@ -13,11 +13,19 @@ Relativisztikus pilótagyakorlat egy fekete lyuk körül: időtágulás, árapá
 | Csillagközi körút | Keresd fel mind a hét távoli helyet a Proximától az Andromedáig. |
 | Ugrás a jövőbe | A Földön teljen el 1 millió év, a hajón legfeljebb 30 nap. |
 | Elmélet-vadász | Fedezd fel mind a hat elméletet a 4D térben, és juss ki egy fehér lyukon. |
-| Penrose-bánya | Mindhárom rakománnyal nyerj energiát az ergoszférában, aztán szökj el 30 rs-en túlra. |
+| Hullámvadász | Légy 3000 egységen belül a kettős lyuktól, amikor az összeolvadás hulláma eléri a hajót. |
+| Penrose-bánya | Öt rakományból háromszor nyerj energiát az ergoszférában, aztán szökj el 30 rs-en túlra. |
 
-A játék küldetésenként megjegyzi a legjobb (legrövidebb) hajóidőt.
+A játék küldetésenként megjegyzi az öt legjobb (legrövidebb hajóidejű) teljesítést. A rekordtábla a böngészőben tárolódik, ezért eszközönként külön van.
 
 ## Változások
+
+### 1.2 – 2026. november 17.
+- Új küldetés: Hullámvadász – a GW150914 mintájára összeolvadó kettős lyuk hullámát kell közelről elkapni.
+- Rekordtábla: küldetésenként az öt legjobb teljesítés a záró kártyán.
+- Penrose-bánya: 5 rakomány (3 sikeres ledobás kell), mert egy menetbe csak egy ledobás fér bele; a bukás már akkor kiderül, ha nem maradt elég rakomány.
+- Javítás: a G billentyű az ergoszférán kívül nem pazarol rakományt.
+- Javítás: a záró kártya alatt nem látszik át az utolsó értesítés.
 
 ### 1.1 – 2026. november 17.
 - Négy új küldetés: Csillagközi körút, Ugrás a jövőbe, Elmélet-vadász, Penrose-bánya.
