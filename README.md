@@ -20,6 +20,9 @@ A játék küldetésenként megjegyzi az öt legjobb (legrövidebb hajóidejű) 
 
 ## Változások
 
+### 1.5 – 2026. november 17.
+- A féreglyuk-átkelés a film jelenete alapján újrarajzolva: belépéskor a tér összetörik (sötét szakadás izzó, töredezett peremmel, sugárirányú csillagcsíkok); a torokban sötét, üveges, hullámzó fal, átlátszó buborékgömbök, vibráló villámszerű repedés, kék lencsefoltok; kilépéskor újabb csíkok, meleg, tűzszerű fénykitörés és felfehéredés. Az átkelés 8 másodperc.
+
 ### 1.4 – 2026. november 17.
 - Féreglyuk (H): a lyuk mellett egy kapu, amely bármelyik távoli helyre hangolható; minden helyen ott a visszavezető száj. Az Interstellar mintájára gömbként látszik, benne a túloldal egével és a peremén lencsézett háttérrel.
 - Átkelés a film mintájára: a gömb kitágul, amíg betölti a képet; a torokban textúrázott „tájak” suhannak el a falon (az indulás színeiből a cél színeibe), a torok kanyarog, a hajó rázkódik, a cél fénye egyre gyorsabban közeledik, a végén felfehéredés.
