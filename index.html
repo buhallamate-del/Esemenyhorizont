@@ -2058,18 +2058,24 @@ function bhDraw(C, bx, by, kpx, t, rot, mid){
   const blit = (img, sc) => { const n = img.width, sz = size*sc, ox = bx - sz/2, oy = by - sz/2, k = n/sz;
     const sx0 = clamp((-ox)*k, 0, n), sy0 = clamp((-oy)*k, 0, n), sx1 = clamp((W - ox)*k, 0, n), sy1 = clamp((H - oy)*k, 0, n);
     if (sx1 - sx0 < 0.5 || sy1 - sy0 < 0.5) return; ctx.drawImage(img, sx0, sy0, sx1 - sx0, sy1 - sy0, ox + sx0/k, oy + sy0/k, (sx1 - sx0)/k, (sy1 - sy0)/k); };
-  ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  // nagyításnál a bikubikus ('high') simítás képkockánként több teljes képernyőnyi drága mintavétel – a bilineáris itt szemre ugyanolyan
+  ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'medium';
   // halvány derengés a lyuk körül, aztán az árnyék
   ctx.globalCompositeOperation = 'lighter';
   const gl = ctx.createRadialGradient(bx, by, BH_BC*kpx, bx, by, size*0.6); gl.addColorStop(0, 'rgba(255,170,90,0.10)'); gl.addColorStop(1, 'rgba(255,120,40,0)');
   ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(bx, by, size*0.6, 0, TAU); ctx.fill();
-  ctx.globalCompositeOperation = 'source-over'; blit(C.shCv, 1);
+  // az árnyék a b = 3√3 M befogási sugárnál húzódó kör (a CAP ott vált): vektorosan töltjük ki, nem felnagyított maszkból
+  ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(bx, by, BH_BC*kpx, 0, TAU); ctx.fill();
   if (mid) mid();
   // a korong fénye, utána egy elmosott példány a ragyogáshoz (bloom)
   ctx.globalCompositeOperation = 'lighter'; blit(C.cv, 1);
+  // a két elmosott példányt egy kis vásznon rakjuk össze, így a képernyőre csak egyszer kell kirajzolni
   const bs = C.bl.width; C.blx.clearRect(0, 0, bs, bs); C.blx.drawImage(C.cv, 0, 0, bs, bs);
-  ctx.globalAlpha = 0.55; blit(C.bl, 1.12);
-  if (size < Math.max(W,H)*2){ ctx.globalAlpha = 0.25; blit(C.bl, 1.6); } ctx.globalAlpha = 1;
+  if (size < Math.max(W,H)*2){ const B = C.bb || (C.bb = document.createElement('canvas')), bn = Math.ceil(bs*1.6) + 2; if (B.width !== bn){ B.width = B.height = bn; C.bbx = B.getContext('2d'); }
+    const g = C.bbx, s1 = bn/1.6*1.12, o1 = (bn - s1)/2; g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; g.clearRect(0, 0, bn, bn);
+    g.imageSmoothingEnabled = true; g.globalAlpha = 0.25; g.drawImage(C.bl, 0, 0, bn, bn); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.55; g.drawImage(C.bl, o1, o1, s1, s1);
+    blit(B, 1.6); }
+  else { ctx.globalAlpha = 0.55; blit(C.bl, 1.12); } ctx.globalAlpha = 1;
   // fotongyűrű: a lyuk körül többször megkerülő fény vékony, éles gyűrűje (b = 3√3 M)
   const rr = BH_BC*kpx*1.004, lg = ctx.createLinearGradient(bx - rr, 0, bx + rr, 0), sinI = Math.sin(C.inc);
   lg.addColorStop(0, `rgba(255,${(150 + 60*(1 - sinI))|0},90,${(0.5 - 0.25*sinI).toFixed(2)})`); lg.addColorStop(1, `rgba(220,232,255,${(0.5 + 0.4*sinI).toFixed(2)})`);
