@@ -36,7 +36,7 @@ Az Eseményhorizont, a [Kísérleti Lőtér](https://buhallamate-del.github.io/K
 - Gyorsítás: a felbontás magától lejjebb lép, ha a gép nem bírja a 60 képkockát (retina kijelzőn ez a legnagyobb nyereség); a filmszemcse külön rétegre került; a ködök negyed felbontású háttérrétegen készülnek; a csillagok és csillagcsíkok kötegelve rajzolódnak; az üvegtükröződés csak a saját sávját festi; az űrpor csíkjai gradiens nélkül készülnek. A fekete lyuk közelről sem fagy be: az árnyéka vektoros kör, a ragyogása egyetlen rajzolás, a felnagyítás bilineáris.
 
 ### 1.9 – 2026. november 17.
-- Három univerzum: közös napló a Kísérleti Lőtérrel és a Raktár 3D-vel, kölcsönös kapuk, a Lőtér-szonda, érkezési üzenet a menüben, a buborékok megjelennek a radaron, ha a másik játékban már jártál. A buborékban futó játék kapuja visszahoz ide (nem tölt be újra mindent).
+- Három univerzum: közös napló a Kísérleti Lőtérrel és a Raktár 3D-vel, kölcsönös kapuk, a Lőtér-szonda, érkezési üzenet a menüben, a buborékok megjelennek a radaron, ha a másik játékban már jártál. A buborékban futó játék kapuja visszahoz ide (nem tölt be újra mindent). A tizedik buborék Kapuváros, a világok közötti város (Kapuk): onnan a Pilóta kapuja nyílik ide (`?from=kapuk`).
 
 ### 1.8 – 2026. november 17.
 - Tesszerakt a 4D térben: itt az idő is térirányként viselkedik – a néhány másodperccel korábbi önmagadat látod magad előtt, hátulról, egymás mögött, egy végtelen folyosóban. A FOTON gombbal jelet küldhetsz a múltba (röviden = pont, hosszan = vonal).
